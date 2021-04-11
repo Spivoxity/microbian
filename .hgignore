@@ -1,0 +1,11 @@
+syntax: glob
+adc.o
+display.o
+i2c.o
+lib.o
+microbian.a
+microbian.o
+mpx-m0.o
+radio.o
+serial.o
+timer.o
