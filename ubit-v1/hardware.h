@@ -264,7 +264,7 @@ struct _ppi_ch {
 #define RADIO_MODE     		 ADDR(0x40001510)
 #define   RADIO_MODE_NRF_1Mbit 0
 #define RADIO_PCNF0    		 ADDR(0x40001514)
-#define   RADIO_PCNF0_LFLEN 0, 3
+#define   RADIO_PCNF0_LFLEN 0, 4
 #define   RADIO_PCNF0_S0LEN 8, 1
 #define   RADIO_PCNF0_S1LEN 16, 4
 #define RADIO_PCNF1    		 ADDR(0x40001518)
