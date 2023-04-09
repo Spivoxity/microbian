@@ -6,7 +6,7 @@ CHIP = cortex-m0
 MPX = mpx-m0
 LSCRIPT = nRF51822.ld
 
-EXAMPLES = ex-level.hex ex-valentine.hex
+EXAMPLES = ex-level.hex ex-valentine.hex ex-echo.hex ex-remote.hex
 
 all: microbian.a startup.o
 
