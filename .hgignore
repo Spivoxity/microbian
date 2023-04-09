@@ -1,11 +1,5 @@
 syntax: glob
-adc.o
-display.o
-i2c.o
-lib.o
+*.o
+*.elf
+*.hex
 microbian.a
-microbian.o
-mpx-m0.o
-radio.o
-serial.o
-timer.o
