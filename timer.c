@@ -1,17 +1,17 @@
-// timer.c
-// Copyright (c) 2018-2020 J. M. Spivey
+/* timer.c */
+/* Copyright (c) 2018-2020 J. M. Spivey */
 
 #include "microbian.h"
 #include "hardware.h"
 
 static int TIMER_TASK;
 
-#ifdef UBIT_V2
-#define TICK 1                  // Interval between updates (ms)
+#ifdef UBIT_V1
+#define TICK 5                  // Interval between updates (ms)
 #endif
 
-#ifndef TICK
-#define TICK 5                  // Sensible default
+#ifdef UBIT_V2
+#define TICK 1                  // Helps with faster display update
 #endif
 
 #define MAX_TIMERS 8
@@ -34,14 +34,11 @@ static struct {
    will be held up, possibly leading to deadlock. */
 
 /* check_timers -- send any messages that are due */
-static void check_timers(void) {
-    int i;
-    message m;
-
-    for (i = 0; i < MAX_TIMERS; i++) {
+static void check_timers(void)
+{
+    for (int i = 0; i < MAX_TIMERS; i++) {
         if (timer[i].client >= 0 && millis >= timer[i].next) {
-            m.m_i1 = timer[i].next;
-            send(timer[i].client, PING, &m);
+            send_int(timer[i].client, PING, timer[i].next);
 
             if (timer[i].period > 0)
                 timer[i].next += timer[i].period;
@@ -100,22 +97,23 @@ static void timer_task(int n) {
     TIMER1_INTENSET = BIT(TIMER_INT_COMPARE0);
     TIMER1_START = 1;
     enable_irq(TIMER1_IRQ);
+    priority(P_HANDLER);
 
     while (1) {
         receive(ANY, &m);
 
-        switch (m.m_type) {
+        switch (m.type) {
         case INTERRUPT:
             tick(TICK);
             check_timers();
             break;
 
         case REGISTER:
-            create(m.m_sender, m.m_i1, m.m_i2);
+            create(m.sender, m.int1, m.int2);
             break;
 
         default:
-            badmesg(m.m_type);
+            badmesg(m.type);
         }
     }
 }
@@ -148,22 +146,16 @@ unsigned timer_micros(void) {
        could happen between looking at the timer and looking at the
        interrupt flag.  The approach is to take two readings with
        interrupts disabled, one before and one after checking the
-       flag.  If the flag is set, but the reading has not gone down
+       flag.  If the flag is set, but the value has not gone down
        between the two readings, that indicates the expiry happened
        before the first reading, so an extra tick should be added.*/
 
     intr_disable();
-#ifdef SYSTICK
-    ticks1 = SYST_CVR >> 6;
-    extra = SYST_CSR & BIT(SYST_CSR_COUNTFLAG);
-    ticks2 = SYST_CVR >> 6;
-#else
     TIMER1_CAPTURE[1] = 1;      // Capture count before testing event
     extra = TIMER1_COMPARE[0];  // Inspect the expiry event
     TIMER1_CAPTURE[2] = 1;      // Capture count afterwards
     ticks1 = TIMER1_CC[1];
     ticks2 = TIMER1_CC[2];
-#endif
     my_millis = millis;
     intr_enable();
 
@@ -176,18 +168,20 @@ unsigned timer_micros(void) {
 /* timer_delay -- one-shot delay */
 void timer_delay(int msec) {
     message m;
-    m.m_i1 = msec;
-    m.m_i2 = 0;                 /* Don't repeat */
-    send(TIMER_TASK, REGISTER, &m);
+    m.type = REGISTER;
+    m.int1 = msec;
+    m.int2 = 0;                 /* Don't repeat */
+    send(TIMER_TASK, &m);
     receive(PING, NULL);
 }
 
 /* timer_pulse -- regular pulse */
 void timer_pulse(int msec) {
     message m;
-    m.m_i1 = msec;
-    m.m_i2 = msec;              /* Repetitive */
-    send(TIMER_TASK, REGISTER, &m);
+    m.type = REGISTER;
+    m.int1 = msec;
+    m.int2 = msec;              /* Repetitive */
+    send(TIMER_TASK, &m);
 }
 
 /* wait -- sleep until next timer pulse */

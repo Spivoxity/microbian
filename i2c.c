@@ -91,14 +91,14 @@ static void i2c_task(int chan) {
 
     while (1) {
         receive(ANY, &m);
-        client = m.m_sender;
-        addr = m.m_b1;        // Address [0..127] without R/W flag
-        n1 = m.m_b2;          // Number of bytes in command
-        n2 = m.m_b3;          // Number of bytes to transfer (R/W)
-        buf1 = m.m_p2;        // Buffer for command
-        buf2 = m.m_p3;        // Buffer for transfer
+        client = m.sender;
+        addr = m.byte1;       // Address [0..127] without R/W flag
+        n1 = m.byte2;         // Number of bytes in command
+        n2 = m.byte3;         // Number of bytes to transfer (R/W)
+        buf1 = m.ptr2;        // Buffer for command
+        buf2 = m.ptr3;        // Buffer for transfer
 
-        switch (m.m_type) {
+        switch (m.type) {
         case READ:
             I2C[chan].I_ADDRESS = addr;
             status = OK;
@@ -146,9 +146,10 @@ static void i2c_task(int chan) {
             }
 
             I2C[chan].I_SHORTS = 0;
-            m.m_i1 = status;
-            m.m_i2 = error;
-            send(client, REPLY, &m);
+            m.type = REPLY;
+            m.int1 = status;
+            m.int2 = error;
+            send(client, &m);
             break;
 
         case WRITE:
@@ -168,13 +169,14 @@ static void i2c_task(int chan) {
                 I2C[chan].I_ERRORSRC = I2C_ERRORSRC_All;
             }
                
-            m.m_i1 = status;
-            m.m_i2 = error;
-            send(client, REPLY, &m);
+            m.type = REPLY;
+            m.int1 = status;
+            m.int2 = error;
+            send(client, &m);
             break;
 
         default:
-            badmesg(m.m_type);
+            badmesg(m.type);
         }
     }
 }
@@ -189,14 +191,14 @@ void i2c_init(int chan) {
 int i2c_xfer(int chan, int kind, int addr,
              byte *buf1, int n1, byte *buf2, int n2) {
     message m;
-    m.m_b1 = addr;
-    m.m_b2 = n1;
-    m.m_b3 = n2;
-    m.m_p2 = buf1;
-    m.m_p3 = buf2;
-    send(I2C_TASK[chan], kind, &m);
-    receive(REPLY, &m);
-    return m.m_i1;
+    m.type = kind;
+    m.byte1 = addr;
+    m.byte2 = n1;
+    m.byte3 = n2;
+    m.ptr2 = buf1;
+    m.ptr3 = buf2;
+    sendrec(I2C_TASK[chan], &m);
+    return m.int1;
 }
 
 /* i2c_probe -- try to access an I2C device */

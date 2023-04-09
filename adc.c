@@ -48,9 +48,9 @@ static void adc_task(int dummy) {
 
     while (1) {
         receive(ANY, &m);
-        assert(m.m_type == REQUEST);
-        client = m.m_sender;
-        chan = m.m_i1;
+        assert(m.type == REQUEST);
+        client = m.sender;
+        chan = m.int1;
 
 #ifdef UBIT_V1
         SET_FIELD(ADC_CONFIG, ADC_CONFIG_PSEL, BIT(chan));
@@ -83,8 +83,7 @@ static void adc_task(int dummy) {
         clear_pending(ADC_IRQ);
         enable_irq(ADC_IRQ);
 
-        m.m_i1 = result;
-        send(client, REPLY, &m);
+        send_int(client, REPLY, result);
     }
 }
 
@@ -113,9 +112,10 @@ int adc_reading(int pin) {
     if (chan < 0)
         panic("Can't use pin %d for ADC", pin);
 
-    m.m_i1 = chan;
-    sendrec(ADC, REQUEST, &m);
-    return m.m_i1;
+    m.type = REQUEST;
+    m.int1 = chan;
+    sendrec(ADC, &m);
+    return m.int1;
 }
 
 void adc_init(void) {

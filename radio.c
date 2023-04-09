@@ -86,7 +86,7 @@ static void radio_task(int dummy) {
 
     while (1) {
         receive(ANY, &m);
-        switch (m.m_type) {
+        switch (m.type) {
         case INTERRUPT:
             // A packet has been received
             if (!RADIO_END || mode != LISTENING)
@@ -104,16 +104,15 @@ static void radio_task(int dummy) {
             n = packet_buffer.length-3;
             memcpy(buffer, packet_buffer.data, n);
 
-            m.m_i1 = n;
-            send(listener, REPLY, &m);
+            send_int(listener, REPLY, n);
             mode = READY;
             break;
 
         case RECEIVE:
             if (mode == LISTENING)
                 panic("radio supports only one listener at a time");
-            listener = m.m_sender;
-            buffer = m.m_p1;
+            listener = m.sender;
+            buffer = m.ptr1;
 
             if (mode == DISABLED) {
                 RADIO_RXEN = 1;
@@ -133,12 +132,12 @@ static void radio_task(int dummy) {
             }
 
             // Assemble the packet
-            n = m.m_i2;
+            n = m.int2;
             packet_buffer.length = n+3;
             packet_buffer.version = 1;
             packet_buffer.group = group;
             packet_buffer.protocol = 1;
-            memcpy(packet_buffer.data, m.m_p1, n);
+            memcpy(packet_buffer.data, m.ptr1, n);
 
             // Enable for sending and transmit the packet
             RADIO_TXEN = 1;
@@ -160,11 +159,11 @@ static void radio_task(int dummy) {
                 RADIO_START = 1;
             }
 
-            send(m.m_sender, REPLY, NULL);
+            send_msg(m.sender, REPLY);
             break;
 
         default:
-            badmesg(m.m_type);
+            badmesg(m.type);
         }
     }
 }
@@ -177,18 +176,20 @@ void radio_group(int grp) {
 /* radio_send -- send radio packet */
 void radio_send(void *buf, int n) {
     message m;
-    m.m_p1 = buf;
-    m.m_i2 = n;
-    sendrec(RADIO_TASK, SEND, &m);
+    m.type = SEND;
+    m.ptr1 = buf;
+    m.int2 = n;
+    sendrec(RADIO_TASK, &m);
 }
 
 /* radio_receive -- receive radio packet and return length */
 int radio_receive(void *buf) {
     // buf must have space for RADIO_PACKET bytes
     message m;
-    m.m_p1 = buf;
-    sendrec(RADIO_TASK, RECEIVE, &m);
-    return m.m_i1;
+    m.type = RECEIVE;
+    m.ptr1 = buf;
+    sendrec(RADIO_TASK, &m);
+    return m.int1;
 }
     
 /* radio_init -- start device driver */

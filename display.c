@@ -63,13 +63,13 @@ void image_set(int x, int y, image img) {
     CLR_BIT(img[p >> 5], p & 0x1f);
 }
 
-/* curimg is a shared variable between the client and the display
+/* display_image is a shared variable between the client and the display
 driver task, but it is read-only in the device driver.  Partial
-updates don't elly matter, because they will cause only a momentary
+updates don't really matter, because they will cause only a momentary
 glitch in the display when it is changing anyway. */
 
-/* curimg -- shared variable for currently displayed image */
-static image curimg;
+/* display_image -- shared variable for currently displayed image */
+static image display_image;
 
 /* display_task -- device driver for LED display */
 void display_task(int dummy) {
@@ -94,14 +94,14 @@ void display_task(int dummy) {
     timer_pulse(3);             /* 3ms * 5 = 15ms updates */
 #endif
 
-    image_clear(curimg);
+    image_clear(display_image);
     priority(P_HIGH);
 
     while (1) {
         // Carefully change LED bits and leave other bits alone
 #ifdef UBIT_V1
         GPIO_OUTCLR = 0xfff0;
-        GPIO_OUTSET = curimg[n++];
+        GPIO_OUTSET = display_image[n++];
         if (n == 3) n = 0;
 #endif
 #ifdef UBIT_V2
@@ -109,8 +109,8 @@ void display_task(int dummy) {
            first and set it last. */
         GPIO0_OUTCLR = LED_MASK0;
         GPIO1_OUTCLR = LED_MASK1;
-        GPIO1_OUTSET = curimg[n+1];
-        GPIO0_OUTSET = curimg[n];
+        GPIO1_OUTSET = display_image[n+1];
+        GPIO0_OUTSET = display_image[n];
         n += 2;
         if (n == 10) n = 0;
 #endif
@@ -121,7 +121,7 @@ void display_task(int dummy) {
 
 /* display_show -- set display from image */
 void display_show(const image img) {
-    memcpy(curimg, img, sizeof(image));
+    memcpy(display_image, img, sizeof(image));
 }
 
 /* display_init -- start display driver task */
