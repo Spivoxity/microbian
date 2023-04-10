@@ -82,7 +82,7 @@ static void radio_task(int dummy) {
     enable_irq(RADIO_IRQ);
 
     // Set packet buffer
-    RADIO_PACKETPTR = (unsigned) &packet_buffer;
+    RADIO_PACKETPTR = &packet_buffer;
 
     while (1) {
         receive(ANY, &m);

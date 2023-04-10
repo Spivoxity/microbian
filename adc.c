@@ -66,13 +66,13 @@ static void adc_task(int dummy) {
 #ifdef UBIT_V2
         ADC_CHAN[0].PSELP = chan+1;
         ADC_ENABLE = 1;
-        ADC_RESULT_PTR = &result;
-        ADC_RESULT_MAXCNT = 1;
+        ADC_RESULT.PTR = &result;
+        ADC_RESULT.MAXCNT = 1;
         ADC_START = 1;
         ADC_SAMPLE = 1;
         receive(INTERRUPT, NULL);
         assert(ADC_END);
-        assert(ADC_RESULT_AMOUNT == 1);
+        assert(ADC_RESULT.AMOUNT == 1);
         ADC_END = 0;
         ADC_ENABLE = 0;
         

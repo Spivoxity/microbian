@@ -19,7 +19,7 @@ typedef unsigned char byte;
 #define READ 7
 #define WRITE 8
 #define OK 9
-#define ERROR 10
+#define ERR 10
 #define SEND 11
 #define RECEIVE 12
 #define ANY -1

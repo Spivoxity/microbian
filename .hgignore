@@ -3,3 +3,4 @@ syntax: glob
 *.elf
 *.hex
 microbian.a
+config.mk
