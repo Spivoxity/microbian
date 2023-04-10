@@ -1,0 +1,112 @@
+#!/usr/bin/tclsh
+
+set status 0
+
+proc define-base {inst base} {
+    puts [format "#define %-31s _BASE(0x%x)" "${inst}_BASE" $base]
+}
+
+proc define-reg {inst base class reg} {
+    global desc address
+
+    set d $desc($class,$reg)
+    set type [lindex $d 0]
+    set star [lindex $d 1]
+    set bounds [lindex $d 2]
+
+    set addr [format "0x%x" [expr {$base + $address($class,$reg)}]]
+
+    if {$bounds ne ""} {
+        set val "_ARR($type$star, $addr)"
+    } else {
+        set val "_REG($type$star, $addr)"
+    }
+
+    puts [format "#define %-31s %s" "${inst}_${reg}" $val]
+}
+
+proc put-defines {class reg} {
+    global defines
+
+    if {[info exists defines($class,$reg)]} {
+        foreach line $defines($class,$reg) {
+            puts $line
+        }
+        unset defines($class,$reg)
+    }
+}
+
+proc process {fd} {
+    global defines desc address
+
+    set indevice 0
+
+    while {[gets $fd line] >= 0} {
+        if {[regexp {^DEVICE} $line]} {
+            if {! [regexp {^DEVICE (.*) \{} $line _ class]} {
+                puts stderr "Bad DEVICE syntax: $line"
+                set status 1
+                continue
+            }
+
+            set indevice 1
+            set section top
+
+        } elseif {[regexp {^[ \t]*REGISTER} $line]} {
+            if {! [regexp {^([ \t]*)REGISTER ([a-z_]*) (\*?)([A-Za-z0-9_]*)(\[[0-9]*\])? *@ *(0x[0-9a-f]*);} \
+                       $line _ indent type star name bounds addr]} {
+                puts stderr "Bad REGISTER syntax: $line"
+                set status 1
+                continue
+            }
+
+            if {! $indevice} {
+                puts stderr "REGISTER outside DEVICE block: $line"
+                set status 1
+                continue
+            }
+
+            lappend devregs($class) $name
+            set desc($class,$name) [list $type $star $bounds]
+            set address($class,$name) $addr
+            set section $name
+
+        } elseif {$indevice && [regexp "\}" $line]} {
+
+            set indevice 0
+
+        } elseif {$indevice} {
+
+            lappend defines($class,$section) $line
+
+        } elseif {[regexp {^INSTANCE} $line]} {
+            if {! [regexp {^INSTANCE (.*) (.*)  *@ *(0x[0-9a-f]*);} \
+                       $line _ cl name addr]} {
+                puts stderr "Bad INSTANCE syntax: $line"
+                set status 1
+                continue
+            }
+
+            define-base $name $addr
+            put-defines $cl top
+            if {[info exists devregs($cl)]} {
+                foreach reg $devregs($cl) {
+                    define-reg $name $addr $cl $reg
+                    put-defines $cl $reg
+                }
+            }
+
+        } else {
+
+            puts $line
+
+        }
+    }
+}
+
+set fname [lindex $argv 0]
+set fd [open $fname r]
+process $fd
+close $fd
+
+exit $status
