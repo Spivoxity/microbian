@@ -1,0 +1,7 @@
+# config.v1
+
+BOARD = ubit-v1
+CHIP = cortex-m0
+MPX = mpx-m0
+LSCRIPT = nRF51822.ld
+
