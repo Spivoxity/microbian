@@ -1,7 +1,7 @@
 // microbian/radio.c
 // Copyright (c) 2020 J. M. Spivey
 
-#include "microbian.h"
+#include "../microbian.h"
 #include "hardware.h"
 #include <string.h>
 

@@ -1,7 +1,7 @@
 /* lab4/accel.c */
 /* Copyright (c) 2020 J. M. Spivey */
 
-#include "microbian.h"
+#include "../microbian.h"
 #include "hardware.h"
 
 /* Accelerometer */

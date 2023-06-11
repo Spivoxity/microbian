@@ -1,9 +1,9 @@
 /* lab4/ex-level.c */
 /* Copyright (c) 2019 J. M. Spivey */
 
-#include "microbian.h"
+#include "../microbian.h"
 #include "hardware.h"
-#include "lib.h"
+#include "../lib.h"
 
 void accel_start(void);
 void accel_reading(int *x, int *y, int *z);

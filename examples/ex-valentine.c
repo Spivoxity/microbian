@@ -2,8 +2,8 @@
 /* Copyright (c) 2020 J. M. Spivey */
 
 #include "hardware.h"
-#include "microbian.h"
-#include "lib.h"
+#include "../microbian.h"
+#include "../lib.h"
 
 /* heart -- filled-in heart image */
 const unsigned heart[] =

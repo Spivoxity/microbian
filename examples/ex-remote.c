@@ -1,9 +1,9 @@
 /* @DIR x3600-radio@/remote.c */
 /* Copyright (c) 2020 J. M. Spivey */
 
-#include "microbian.h"
+#include "../microbian.h"
 #include "hardware.h"
-#include "lib.h"
+#include "../lib.h"
 
 #define GROUP 17
 

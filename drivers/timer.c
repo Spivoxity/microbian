@@ -1,7 +1,7 @@
 /* timer.c */
 /* Copyright (c) 2018-2020 J. M. Spivey */
 
-#include "microbian.h"
+#include "../microbian.h"
 #include "hardware.h"
 
 static int TIMER_TASK;

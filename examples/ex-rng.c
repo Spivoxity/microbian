@@ -3,8 +3,8 @@
 //
 
 #include "hardware.h"
-#include "microbian.h"
-#include "lib.h"
+#include "../microbian.h"
+#include "../lib.h"
 
 
 void random_numbers_task(int n){

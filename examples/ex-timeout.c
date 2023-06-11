@@ -2,8 +2,8 @@
 /* Copyright (c) 2023 J. M. Spivey */
 
 #include "hardware.h"
-#include "microbian.h"
-#include "lib.h"
+#include "../microbian.h"
+#include "../lib.h"
 
 int BUTTONS;
 

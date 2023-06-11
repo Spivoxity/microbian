@@ -1,7 +1,7 @@
 // microbian/adc.c
 // Copyright (c) 2021 J. M. Spivey
 
-#include "microbian.h"
+#include "../microbian.h"
 #include "hardware.h"
 
 static int ADC;
