@@ -43,7 +43,7 @@ microbian.a: $(MICROBIAN)
 	./hwdesc $< >$@
 
 clean: force
-	rm -f microbian.a *.o *.elf *.hex
+	rm -f microbian.a *.o *.elf *.hex drivers/*.o
 
 force:
 
