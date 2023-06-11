@@ -1,7 +1,7 @@
 # microbian/Makefile
 # Copyright (c) 2020 J. M. Spivey
 
-include config.mk
+include config.v2
 
 EXAMPLES = ex-level.hex ex-valentine.hex ex-echo.hex ex-remote.hex \
 	ex-timeout.hex
@@ -20,7 +20,7 @@ AR = arm-none-eabi-ar
 
 vpath %.c $(BOARD)
 
-DRIVERS = timer.o serial.o i2c.o radio.o display.o adc.o
+DRIVERS = drivers/timer.o drivers/serial.o drivers/i2c.o drivers/radio.o drivers/display.o drivers/adc.o drivers/rng.o
 
 MICROBIAN = microbian.o $(MPX).o $(DRIVERS) lib.o
 
