@@ -1,7 +1,7 @@
 # microbian/Makefile
 # Copyright (c) 2020 J. M. Spivey
 
-include config.v2
+include config.mk
 
 EXAMPLES = ex-level.hex ex-valentine.hex ex-echo.hex ex-remote.hex \
 	ex-timeout.hex
