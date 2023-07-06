@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define _TIMEOUT 1
-
+#define _SCHEDULING_OPT 1
 #ifdef MICROBIAN_DEBUG
 void debug_sched(int pid);
 #define DEBUG_SCHED(pid) debug_sched(pid)
@@ -41,8 +41,15 @@ struct _proc {
     message *msgbuf;          /* Pointer to message buffer */
 #ifdef _TIMEOUT
     int timeout;              /* Timeout for receive */
+
+#endif
+
+#ifdef _SCHEDULING_OPT
+    unsigned long long n_ticks;
+    unsigned long n_calls;
 #endif
     proc next;                /* Next process in ready or send queue */
+
 };
 
 /* Possible state values */
@@ -167,26 +174,85 @@ static struct _queue {
     proc head, tail;
 } os_readyq[NPRIO];
 
-/* make_ready -- add process to end of the ready queue for its priority */
+/* make_ready -- add process to the ready queue based on priority and average running time ifdef _SCHEDULING_OPT */
 static inline void make_ready(proc p)
 {
     int prio = p->priority;
-    if (prio == P_IDLE) return;
+    if (prio == P_IDLE)
+        return;
 
     p->state = ACTIVE;
     p->next = NULL;
 
     queue q = &os_readyq[prio];
-    if (q->head == NULL)
+    if (q->head == NULL) {
+        // If the queue is empty, insert the process at the front
         q->head = p;
-    else
+        q->tail = p;
+    } else {
+#ifdef _SCHEDULING_OPT
+        // Calculate the average running time for the new process
+        double newProcessAvgTime = (double)p->n_ticks / p->n_calls;
+
+        // Find the appropriate position for insertion based on average running time
+        proc current = q->head;
+        proc prev = NULL;
+
+        while (current != NULL && newProcessAvgTime >= (double)current->n_ticks / current->n_calls) {
+            prev = current;
+            current = current->next;
+        }
+
+        // Insert the process at the appropriate position
+        if (prev == NULL) {
+            // Insert at the front of the queue
+            p->next = q->head;
+            q->head = p;
+        } else {
+            // Insert in between prev and current
+            p->next = current;
+            prev->next = p;
+        }
+
+        // Update the tail of the queue if necessary
+        if (current == NULL) {
+            q->tail = p;
+        }
+#else
+        // Insert the process at the end of the queue
         q->tail->next = p;
-    q->tail = p;
+        q->tail = p;
+#endif
+    }
 }
+
 
 /* choose_proc -- the current process is blocked: pick a new one */
 static inline void choose_proc(void)
 {
+#ifdef _SCHEDULING_OPT
+    // Find the queue with the highest priority (smallest average running time)
+    queue highest_priority_queue = NULL;
+    int highest_priority = NPRIO;
+    for (int p = 0; p < NPRIO; p++) {
+        queue q = &os_readyq[p];
+        if (q->head != NULL && p < highest_priority) {
+            highest_priority = p;
+            highest_priority_queue = q;
+        }
+    }
+
+    // Select the process at the head of the highest priority queue, if it exists
+    if (highest_priority_queue != NULL) {
+        os_current = highest_priority_queue->head;
+        highest_priority_queue->head = os_current->next;
+        os_current->next = NULL;
+        os_current->n_calls += 1;
+        DEBUG_SCHED(os_current->pid);
+        return;
+    }
+#else
+    // Original sequential iteration through the queues
     for (int p = 0; p < NPRIO; p++) {
         queue q = &os_readyq[p];
         if (q->head != NULL) {
@@ -196,11 +262,15 @@ static inline void choose_proc(void)
             return;
         }
     }
+#endif
+
+    // If no process is found in the queues, assign the idle process
     os_current = idle_proc;
     DEBUG_SCHED(0);
 }
 
-/* deliver_special -- devliver a special message and mark the recipient ready */
+
+/* deliver_special -- devliver a specdzliverial message and mark the recipient ready */
 static inline void deliver_special(proc pdst, int src, int type)
 {
     message *buf = pdst->msgbuf;
@@ -215,15 +285,15 @@ static inline void deliver_special(proc pdst, int src, int type)
 
 /* Programs that include a timer may also use a form of receive() with
 a timeout, so that a message of type TIMEOUT from hardware is
-delivered after an interval if not genuine message has arrived.
+delivered after an interval if no genuine message has arrived.
 
 A process p has a timeout set if p->timeout != NO_TIME.  Such
 processes are also listed in timeout[0..n_timeouts), so we can find
-them quickly on each tick.  The global ticks variable and the
+them quickly on each tick. The global ticks variable and the
 timeout field count in ticks from the last timer update, and the
 next update is due when ticks exceeds next_time.  This value can be
 negative, because we delay firing timeouts until the tick after they
-are due, so as to avoid firing them early.  If calls the tick() come
+are due, to avoid firing them early.  If calls the tick() come
 at regular intervals (whatever they are), then this scheme ensures
 that no timer fires earlier than it should, even if the timer is set
 just before a tick. */
@@ -672,11 +742,15 @@ static void idle_task(void)
 /* __start -- start the operating system */
 void __start(void)
 {
+
     /* Create idle task as process 0 */
     idle_proc = create_proc("IDLE", IDLE_STACK);
     idle_proc->state = IDLING;
     idle_proc->priority = P_IDLE;
 
+#ifdef _SCHEDULING_OPT
+    timer_init();
+#endif
     /* Call the application's setup function */
     init();
 
@@ -753,11 +827,16 @@ unsigned *system_call(unsigned *psp)
         microbian_dump();
         break;
 
-#ifdef _TIMEOUT
     case SYS_TICK:
-        mini_tick(sysarg(0, int));
-        break;
+#ifdef _SCHEDULING_OPT
+        os_current->n_ticks += 1;
 #endif
+
+#ifdef _TIMEOUT
+
+            mini_tick(sysarg(0, int));
+#endif
+            break;
 
     default:
         panic("Unknown syscall %d", op);
