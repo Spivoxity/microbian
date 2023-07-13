@@ -197,14 +197,21 @@ static inline void make_ready(proc p)
         // Find the appropriate position for insertion based on average running time
         proc current = q->head;
         proc prev = NULL;
+        proc lastEqualTail = NULL; // Variable to store the last element with the same score as the tail
 
         while (current != NULL && newProcessAvgTime >= (double)current->n_ticks / current->n_calls) {
+            if ((double)current->n_ticks / current->n_calls == (double)q->tail->n_ticks / q->tail->n_calls)
+                lastEqualTail = current;
             prev = current;
             current = current->next;
         }
 
         // Insert the process at the appropriate position
-        if (prev == NULL) {
+        if (lastEqualTail != NULL) {
+            // Insert after the last element with the same score as the tail
+            p->next = lastEqualTail->next;
+            lastEqualTail->next = p;
+        } else if (prev == NULL) {
             // Insert at the front of the queue
             p->next = q->head;
             q->head = p;
@@ -225,6 +232,7 @@ static inline void make_ready(proc p)
 #endif
     }
 }
+
 
 
 /* choose_proc -- the current process is blocked: pick a new one */
