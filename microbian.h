@@ -1,7 +1,7 @@
 /* microbian.h */
 /* Copyright (c) 2018 J. M. Spivey */
-
-typedef unsigned char byte;
+#include "process.h"
+#include "defines.h"
 
 #define NULL ((void *) 0)
 
@@ -24,23 +24,6 @@ typedef unsigned char byte;
 #define RECEIVE 12
 #define ANY -1
 
-/* Possible priorities */
-#define P_HANDLER 0             /* Interrupt handler */
-#define P_HIGH 1                /* Responsive */
-#define P_LOW 2                 /* Normal */
-#define P_IDLE 3                /* The idle process */
-#define NPRIO 3                 /* Number of non-idle priorities */
-
-typedef struct {                /* 16 bytes */
-    unsigned short type;        /* Type of message */
-    unsigned short sender;      /* PID of sender */
-    union {                     /* An integer, a pointer, or four bytes */
-        int int1; void *ptr1;
-        struct { byte byte1, byte2, byte3, byte4; };
-    };
-    union { int int2; void *ptr2; }; /* Another integer or pointer */
-    union { int int3; void *ptr3; }; /* A third integer or pointer */
-} message;
 
 
 /* microbian.c */

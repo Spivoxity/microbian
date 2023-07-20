@@ -5,9 +5,9 @@
 #include "lib.h"
 #include "hardware.h"
 #include <string.h>
+#include "process.h"
 
-#define _TIMEOUT 1
-#define _SCHEDULING_OPT 1
+
 #ifdef MICROBIAN_DEBUG
 void debug_sched(int pid);
 #define DEBUG_SCHED(pid) debug_sched(pid)
@@ -16,41 +16,7 @@ void debug_sched(int pid);
 #endif
 
 
-/* PROCESS DESCRIPTORS */
 
-/* Each process has a descriptor, allocated when the process is
-created.  The next field in the descriptor allows each process to be
-linked into at most one queue -- either the queue of ready processes
-at some priority level, or the queue of senders waiting to deliver a
-message to a particular receiver process. */
-
-typedef struct _proc *proc;
-
-struct _proc {
-    int pid;                  /* Process ID (equal to index) */
-    char name[16];            /* Name for debugging */
-    unsigned state;           /* SENDING, RECEIVING, etc. */
-    unsigned *sp;             /* Saved stack pointer */
-    void *stack;              /* Stack area */
-    unsigned stksize;         /* Stack size (bytes) */
-    int priority;             /* Priority: 0 is highest */
-    
-    proc waiting;             /* Processes waiting to send */
-    int pending;              /* Whether HARDWARE message pending */
-    int filter;               /* Message type accepted by receive */
-    message *msgbuf;          /* Pointer to message buffer */
-#ifdef _TIMEOUT
-    int timeout;              /* Timeout for receive */
-
-#endif
-
-#ifdef _SCHEDULING_OPT
-    unsigned long long n_ticks;
-    unsigned long n_calls;
-#endif
-    proc next;                /* Next process in ready or send queue */
-
-};
 
 /* Possible state values */
 #define DEAD 0
@@ -80,8 +46,7 @@ static unsigned char *htop = __stack_limit;
 #define ROUNDUP(x, n)  (((x)+(n)-1) & ~((n)-1))
 
 /* sbrk -- allocate space at the bottom of the heap */
-static void *sbrk(int inc)
-{
+static void *sbrk(int inc) {
     hbot = (unsigned char *) ROUNDUP((unsigned) hbot, 8);
     inc = ROUNDUP(inc, 8);
 
@@ -93,8 +58,7 @@ static void *sbrk(int inc)
 }
 
 /* new_proc -- allocate a process descriptor from the top of the heap */
-static proc new_proc(void)
-{
+static proc new_proc(void) {
     if (htop - hbot < sizeof(struct _proc))
         panic("No space for process");
     htop -= sizeof(struct _proc);
@@ -115,30 +79,29 @@ static proc idle_proc;
 #define BLANK 0xdeadbeef        /* Filler for initial stack */
 
 static void kprintf_setup(void);
+
 static void kprintf_internal(char *fmt, ...);
 
 /* pad -- pad string with spaces to a specified width */
-static void pad(char *buf, int width)
-{
+static void pad(char *buf, int width) {
     int w = strlen(buf);
     if (w < width) {
-        memset(buf+w, ' ', width-w);
+        memset(buf + w, ' ', width - w);
         buf[width] = '\0';
     }
 }
 
 /* microbian_dump -- display process states */
-static void microbian_dump(void)
-{
+static void microbian_dump(void) {
     char buf[16];
 
     static const char *status[] = {
-        "[DEAD]   ",
-        "[ACTIVE] ",
-        "[SEND]   ",
-        "[RECEIVE]",
-        "[SENDREC]",
-        "[IDLE]   "
+            "[DEAD]   ",
+            "[ACTIVE] ",
+            "[SEND]   ",
+            "[RECEIVE]",
+            "[SENDREC]",
+            "[IDLE]   "
     };
 
     kprintf_setup();
@@ -155,7 +118,7 @@ static void microbian_dump(void)
         while (*z == BLANK) z++;
         unsigned free = (char *) z - (char *) p->stack;
 
-        sprintf(buf, "%u/%u", p->stksize-free, p->stksize);
+        sprintf(buf, "%u/%u", p->stksize - free, p->stksize);
         pad(buf, 9);
         kprintf_internal("%s%d: %s %x stk=%s %s\r\n",
                          (pid < 10 ? " " : ""), pid,
@@ -175,8 +138,7 @@ static struct _queue {
 } os_readyq[NPRIO];
 
 /* make_ready -- add process to the ready queue based on priority and average running time ifdef _SCHEDULING_OPT */
-static inline void make_ready(proc p)
-{
+static inline void make_ready(proc p) {
     int prio = p->priority;
     if (prio == P_IDLE)
         return;
@@ -190,40 +152,29 @@ static inline void make_ready(proc p)
         q->head = p;
         q->tail = p;
     } else {
-#ifdef _SCHEDULING_OPT
-        // Calculate the average running time for the new process
-        double newProcessAvgTime = (double)p->n_ticks / p->n_calls;
 
-        // Find the appropriate position for insertion based on average running time
-        proc current = q->head;
-        proc prev = NULL;
-        proc lastEqualTail = NULL; // Variable to store the last element with the same score as the tail
 
-        while (current != NULL && newProcessAvgTime >= (double)current->n_ticks / current->n_calls) {
-            if ((double)current->n_ticks / current->n_calls == (double)q->tail->n_ticks / q->tail->n_calls)
-                lastEqualTail = current;
-            prev = current;
-            current = current->next;
-        }
-
-        // Insert the process at the appropriate position
-        if (lastEqualTail != NULL) {
-            // Insert after the last element with the same score as the tail
-            p->next = lastEqualTail->next;
-            lastEqualTail->next = p;
-        } else if (prev == NULL) {
-            // Insert at the front of the queue
-            p->next = q->head;
-            q->head = p;
-        } else {
-            // Insert in between prev and current
-            p->next = current;
-            prev->next = p;
-        }
-
-        // Update the tail of the queue if necessary
-        if (current == NULL) {
+#ifdef _SCHEDULING_OPT // then the queue is by increasing score
+        if (score(p) > score(q->tail)) {
+            q->tail->next = p;
             q->tail = p;
+        } else {
+            proc prev = NULL;
+            proc curr = q->head;
+
+            while (curr != NULL && score(curr) <=
+                                   score(p)) {//Normally, because the queue is ordered, the first condition will always be false.
+                prev = curr;
+                curr = curr->next;
+            }
+
+            if (prev == NULL) {// p < q.head
+                q->head = p;
+                q->head->next = curr;
+            } else {
+                prev->next = p;
+                p->next = curr;
+            }
         }
 #else
         // Insert the process at the end of the queue
@@ -234,10 +185,8 @@ static inline void make_ready(proc p)
 }
 
 
-
 /* choose_proc -- the current process is blocked: pick a new one */
-static inline void choose_proc(void)
-{
+static inline void choose_proc(void) {
 #ifdef _SCHEDULING_OPT
     // Find the queue with the highest priority (smallest average running time)
     queue highest_priority_queue = NULL;
@@ -279,8 +228,7 @@ static inline void choose_proc(void)
 
 
 /* deliver_special -- devliver a specdzliverial message and mark the recipient ready */
-static inline void deliver_special(proc pdst, int src, int type)
-{
+static inline void deliver_special(proc pdst, int src, int type) {
     message *buf = pdst->msgbuf;
     if (buf) {
         buf->sender = src;
@@ -314,9 +262,11 @@ static int n_timeouts = 0;
 static int ticks = 0;           /* Accumulated ticks since last update (ms) */
 static int next_time = NO_TIME; /* Earliest timeout due (could be -ve) */
 
+
+
+
 /* set_timeout -- schedule a timeout */
-static void set_timeout(int ms)
-{
+static void set_timeout(int ms) {
     int due = ticks + ms;
     assert(n_timeouts < NPROCS);
     assert(os_current->timeout == NO_TIME);
@@ -327,8 +277,7 @@ static void set_timeout(int ms)
 }
 
 /* cancel_timeout -- cancel a timeout before it is due */
-static void cancel_timeout(proc p)
-{
+static void cancel_timeout(proc p) {
     assert(p->timeout != NO_TIME);
     p->timeout = NO_TIME;
 
@@ -344,8 +293,7 @@ static void cancel_timeout(proc p)
 }
 
 /* mini-tick -- register a clock tick and fire any timeouts due */
-static void mini_tick(int ms)
-{
+static void mini_tick(int ms) {
     if (next_time == NO_TIME)
         /* No timers active */
         return;
@@ -388,15 +336,13 @@ static void mini_tick(int ms)
 processes via the system calls send() and receive(). */
 
 /* accept -- test if a process is waiting for a message of given type */
-static inline int accept(proc pdest, int type)
-{
+static inline int accept(proc pdest, int type) {
     return (pdest->state == RECEIVING
             && (pdest->filter == ANY || pdest->filter == type));
 }
 
 /* deliver -- copy a message and make the destination ready */
-static inline void deliver(proc pdest, proc psrc)
-{
+static inline void deliver(proc pdest, proc psrc) {
     if (pdest->msgbuf) {
         *(pdest->msgbuf) = *(psrc->msgbuf);
         pdest->msgbuf->sender = psrc->pid;
@@ -405,8 +351,7 @@ static inline void deliver(proc pdest, proc psrc)
 }
 
 /* queue_sender -- add current process to a receiver's queue */
-static inline void queue_sender(proc pdest)
-{
+static inline void queue_sender(proc pdest) {
     os_current->next = NULL;
     if (pdest->waiting == NULL)
         pdest->waiting = os_current;
@@ -419,10 +364,9 @@ static inline void queue_sender(proc pdest)
 }
 
 /* find_sender -- search process queue for acceptable sender */
-static proc find_sender(proc pdst, int type)
-{
+static proc find_sender(proc pdst, int type) {
     proc psrc, prev = NULL;
-        
+
     for (psrc = pdst->waiting; psrc != NULL; psrc = psrc->next) {
         if (type == ANY || psrc->msgbuf->type == type) {
             if (prev == NULL)
@@ -440,8 +384,7 @@ static proc find_sender(proc pdst, int type)
 }
 
 /* await_reply -- wait for reply after sendrec */
-static void await_reply(proc pdst)
-{
+static void await_reply(proc pdst) {
     proc psrc = find_sender(pdst, REPLY);
     if (psrc != NULL) {
         /* Unlikely but not impossible: a REPLY message is already waiting.
@@ -454,8 +397,7 @@ static void await_reply(proc pdst)
     }
 }
 
-static inline proc find_dest(int dest)
-{
+static inline proc find_dest(int dest) {
     proc pdest;
 
     if (dest < 0 || dest >= os_nprocs)
@@ -470,8 +412,7 @@ static inline proc find_dest(int dest)
 }
 
 /* mini_send -- send a message */
-static void mini_send(int dest, message *msg)
-{
+static void mini_send(int dest, message *msg) {
     proc pdest = find_dest(dest);
 
     os_current->msgbuf = msg;
@@ -496,10 +437,9 @@ static void mini_send(int dest, message *msg)
 /* mini_receive -- receive a message */
 static void mini_receive(int type, message *msg
 #ifdef _TIMEOUT
-                         , int timeout
+        , int timeout
 #endif
-    )
-{
+) {
     os_current->msgbuf = msg;
 
     /* First see if an interrupt is pending */
@@ -517,16 +457,16 @@ static void mini_receive(int type, message *msg
             deliver(os_current, psrc);
 
             switch (psrc->state) {
-            case SENDING:
-                make_ready(psrc);
-                break;
+                case SENDING:
+                    make_ready(psrc);
+                    break;
 
-            case SENDREC:
-                await_reply(psrc);
-                break;
+                case SENDREC:
+                    await_reply(psrc);
+                    break;
 
-            default:
-                panic("Bad state in receive()");
+                default:
+                    panic("Bad state in receive()");
             }
 
             choose_proc();
@@ -549,11 +489,10 @@ static void mini_receive(int type, message *msg
     if (timeout > 0) set_timeout(timeout);
 #endif
     choose_proc();
-}    
+}
 
 /* mini_sendrec -- send a message and wait for reply */
-static void mini_sendrec(int dest, message *msg)
-{
+static void mini_sendrec(int dest, message *msg) {
     proc pdest = find_dest(dest);
 
     if (msg->type == REPLY)
@@ -587,23 +526,20 @@ the genuine interrupts >= 0, not the 16 exceptions that are < 0 this way. */
 static int os_handler[N_INTERRUPTS];
 
 /* connect -- connect the current process to an IRQ */
-void connect(int irq)
-{
+void connect(int irq) {
     if (irq < 0) panic("Can't connect to CPU exceptions");
     os_current->priority = P_HANDLER;
     os_handler[irq] = os_current->pid;
 }
 
 /* priority -- set process priority */
-void priority(int p)
-{
+void priority(int p) {
     if (p < 0 || p > P_LOW) panic("Bad priority %d\n", p);
     os_current->priority = p;
 }
 
 /* interrupt -- send interrupt message */
-void interrupt(int dest)
-{
+void interrupt(int dest) {
     proc pdest = find_dest(dest);
 
     if (accept(pdest, INTERRUPT)) {
@@ -626,8 +562,7 @@ registered handler task.  Normally the handler task will deal with the
 cause of the interrupt, then re-enable it. */
 
 /* default_handler -- handler for most interrupts */
-void default_handler(void)
-{
+void default_handler(void) {
     int irq = active_irq(), task;
     if (irq < 0 || (task = os_handler[irq]) == 0)
         panic("Unexpected interrupt %d", irq);
@@ -636,13 +571,12 @@ void default_handler(void)
 }
 
 /* hardfault_handler -- substitutes for the definition in startup.c */
-void hardfault_handler(void)
-{
+void hardfault_handler(void) {
     int fault = active_irq() + 16;
 
     static const char *exc_name[] = {
-        "*zero*", "Reset", "NMI", "HardFault",
-        "MemManage", "BusFault", "UsageFault"
+            "*zero*", "Reset", "NMI", "HardFault",
+            "MemManage", "BusFault", "UsageFault"
     };
 
     panic("Unexpected fault %s", exc_name[fault]);
@@ -652,8 +586,7 @@ void hardfault_handler(void)
 /* INITIALISATION */
 
 /* create_proc -- allocate and initialise process descriptor */
-static proc create_proc(char *name, unsigned stksize)
-{
+static proc create_proc(char *name, unsigned stksize) {
     int pid;
     proc p;
     unsigned char *stack;
@@ -708,8 +641,7 @@ static proc create_proc(char *name, unsigned stksize)
 #define roundup(x, n) (((x) + ((n)-1)) & ~((n)-1))
 
 /* start -- initialise a process to run later */
-int start(char *name, void (*body)(int), int arg, int stksize)
-{
+int start(char *name, void (*body)(int), int arg, int stksize) {
     proc p = create_proc(name, roundup(stksize, 8));
 
     if (os_current != NULL)
@@ -717,7 +649,7 @@ int start(char *name, void (*body)(int), int arg, int stksize)
 
     /* Fake an exception frame */
     unsigned *sp = p->sp - FRAME_WORDS;
-    memset(sp, 0, 4*FRAME_WORDS);
+    memset(sp, 0, 4 * FRAME_WORDS);
     sp[PSR_SAVE] = INIT_PSR;
     sp[PC_SAVE] = (unsigned) body & ~0x1; /* Activate the process body */
     sp[LR_SAVE] = (unsigned) exit; /* Make it return to exit() */
@@ -738,18 +670,17 @@ void init(void);
 #define IDLE_STACK 128
 
 /* idle_task -- body of idle process */
-static void idle_task(void)
-{
+static void idle_task(void) {
     /* Pick a genuine process to run */
     yield();
 
     /* Idle only runs again when there's nothing to do. */
     while (1) pause();
-}    
+}
+
 
 /* __start -- start the operating system */
-void __start(void)
-{
+void __start(void) {
 
     /* Create idle task as process 0 */
     idle_proc = create_proc("IDLE", IDLE_STACK);
@@ -757,7 +688,13 @@ void __start(void)
     idle_proc->priority = P_IDLE;
 
 #ifdef _SCHEDULING_OPT
-    timer_init();
+    TIMER0_STOP = 1;
+    TIMER0_MODE = TIMER_MODE_Timer;
+    TIMER0_BITMODE = TIMER_BITMODE_32Bit;
+    TIMER0_PRESCALER = 4;      // 1MHz = 16MHz / 2^4
+    TIMER0_CLEAR = 1;
+    TIMER0_CC[0] = 1000 * TICK;
+    TIMER0_START = 1;
 #endif
     /* Call the application's setup function */
     init();
@@ -771,6 +708,12 @@ void __start(void)
 
 
 /* SYSTEM CALL INTERFACE */
+
+/* Util function to measure time */
+unsigned timer0_value(void) {
+    TIMER0_CAPTURE[0] = 1;
+    return TIMER0_CC[0];
+}
 
 /* System call numbers */
 #define SYS_YIELD 0
@@ -787,10 +730,20 @@ can't rely on the arguments still being in r0, r1, etc., because an
 interrupt may have intervened and trashed these registers. */
 
 #define sysarg(i, t) ((t) psp[R0_SAVE+(i)])
+// Calculates the amount of time between two unsigned integers, handling overflow gracefully.
+unsigned delta(unsigned t1, unsigned t2) {
+    if (t1 > t2) {
+        // Assume overflow and treat t2 as such.
+        t2 += (unsigned)sizeof(unsigned);
+    }
+    return t2 - t1;
+}
 
 /* system_call -- entry from system call traps */
-unsigned *system_call(unsigned *psp)
-{
+unsigned *system_call(unsigned *psp) {
+    unsigned t1, t2;
+
+
     short *pc = (short *) psp[PC_SAVE]; /* Program counter */
     int op = pc[-1] & 0xff;      /* Syscall number from svc instruction */
 
@@ -798,46 +751,58 @@ unsigned *system_call(unsigned *psp)
     os_current->sp = psp;
 
     /* Check for stack overflow */
-    if (* (unsigned *) os_current->stack != BLANK)
+    if (*(unsigned *) os_current->stack != BLANK)
         panic("Stack overflow");
 
+    t1 = timer0_value(); // start a timer to calculate the absolute age of the os_current *at the end of this call*.
     switch (op) {
-    case SYS_YIELD:
-        make_ready(os_current);
-        choose_proc();
-        break;
+        case SYS_YIELD:
+            make_ready(os_current);
+            t2 = timer0_value();
+            os_current->age = os_current->age + delta(t1, t2);
 
-    case SYS_SEND:
-        mini_send(sysarg(0, int), sysarg(1, message *));
-        break;
+            choose_proc();// os_current will have changed after this.
+            t1 = timer0_value(); // reset t1
+            t2 = t1; //reset t2
+            break;
 
-    case SYS_RECEIVE:
-        mini_receive(sysarg(0, int), sysarg(1, message *)
+        case SYS_SEND:
+            mini_send(sysarg(0, int), sysarg(1, message *));
+            break;
+
+        case SYS_RECEIVE:
+            mini_receive(sysarg(0, int), sysarg(1, message *)
 #ifdef _TIMEOUT
-                     , sysarg(2, int)
+                    , sysarg(2, int)
 #endif
             );
-        break;
+            break;
 
-    case SYS_SENDREC:
-        mini_sendrec(sysarg(0, int), sysarg(1, message *));
-        break;
+        case SYS_SENDREC:
 
-    case SYS_EXIT:
-        os_current->state = DEAD;
-        choose_proc();
-        break;
+            mini_sendrec(sysarg(0, int), sysarg(1, message *));
+            break;
 
-    case SYS_DUMP:
-        /* Invoking microbian_dump as a system call means that its own
-           stack space is taken from the system stack rather than the
-           stack of the current process. */
-        microbian_dump();
-        break;
+        case SYS_EXIT:
+            os_current->state = DEAD;
+            t2 = timer0_value();
+            os_current->age = os_current->age + delta(t1, t2);
 
-    case SYS_TICK:
+            choose_proc();// os_current will have changed after this.
+            t1 = timer0_value(); // reset t1
+            t2 = t1; //reset t2
+            break;
+
+        case SYS_DUMP:
+            /* Invoking microbian_dump as a system call means that its own
+               stack space is taken from the system stack rather than the
+               stack of the current process. */
+            microbian_dump();
+            break;
+
+        case SYS_TICK:
 #ifdef _SCHEDULING_OPT
-        os_current->n_ticks += 1;
+            os_current->n_ticks += 1;
 #endif
 
 #ifdef _TIMEOUT
@@ -846,17 +811,19 @@ unsigned *system_call(unsigned *psp)
 #endif
             break;
 
-    default:
-        panic("Unknown syscall %d", op);
+        default:
+            panic("Unknown syscall %d", op);
     }
 
+
+    t2 = timer0_value();
+    os_current->age += delta(t1, t2);
     /* Return sp for next process to run */
     return os_current->sp;
 }
 
 /* cxt_switch -- context switch following interrupt */
-unsigned *cxt_switch(unsigned *psp)
-{
+unsigned *cxt_switch(unsigned *psp) {
     os_current->sp = psp;
     make_ready(os_current);
     choose_proc();
@@ -875,25 +842,21 @@ not be found in the right places. */
 
 #define NOINLINE __attribute((noinline))
 
-void NOINLINE yield(void)
-{
+void NOINLINE yield(void) {
     syscall(SYS_YIELD);
 }
 
-void NOINLINE send(int dest, message *msg)
-{
+void NOINLINE send(int dest, message *msg) {
     syscall(SYS_SEND);
 }
 
-void send_msg(int dest, int type)
-{
+void send_msg(int dest, int type) {
     message m;
     m.type = type;
     send(dest, &m);
 }
 
-void send_int(int dest, int type, int val)
-{
+void send_int(int dest, int type, int val) {
     message m;
     m.type = type;
     m.int1 = val;
@@ -902,13 +865,11 @@ void send_int(int dest, int type, int val)
 
 #ifdef _TIMEOUT
 
-void NOINLINE receive_t(int type, message *msg, int timeout)
-{
+void NOINLINE receive_t(int type, message *msg, int timeout) {
     syscall(SYS_RECEIVE);
 }
 
-void receive(int type, message *msg)
-{
+void receive(int type, message *msg) {
     receive_t(type, msg, -1);
 }
 
@@ -921,23 +882,19 @@ void NOINLINE receive(int type, message *msg)
 
 #endif
 
-void NOINLINE sendrec(int dest, message *msg)
-{
+void NOINLINE sendrec(int dest, message *msg) {
     syscall(SYS_SENDREC);
 }
 
-void NOINLINE exit(void)
-{
+void NOINLINE exit(void) {
     syscall(SYS_EXIT);
 }
 
-void NOINLINE dump(void)
-{
+void NOINLINE dump(void) {
     syscall(SYS_DUMP);
 }
 
-void NOINLINE tick(int ms)
-{
+void NOINLINE tick(int ms) {
     syscall(SYS_TICK);
 }
 
@@ -948,30 +905,32 @@ void NOINLINE tick(int ms)
 interrupts and polling: they should be used only for debugging. */
 
 /* delay_usec -- delay loop */
-static void delay_usec(int usec)
-{
-    int t = usec<<1;
+static void delay_usec(int usec) {
+    int t = usec << 1;
     while (t > 0) {
         /* 500nsec per iteration */
-        nop(); nop(); nop();
+        nop();
+        nop();
+        nop();
         t--;
     }
 }
-        
+
 /* kprintf_setup -- set up UART connection to host */
-static void kprintf_setup(void)
-{
+static void kprintf_setup(void) {
     /* Delay so any UART activity can cease */
     delay_usec(2000);
 
     /* Set up pins to maintain signal levels while UART disabled */
-    gpio_dir(USB_TX, 1); gpio_dir(USB_RX, 0); gpio_out(USB_TX, 1);
+    gpio_dir(USB_TX, 1);
+    gpio_dir(USB_RX, 0);
+    gpio_out(USB_TX, 1);
 
     /* Reconfigure the UART just to be sure */
     UART_ENABLE = UART_ENABLE_Disabled;
     UART_BAUDRATE = UART_BAUDRATE_9600; /* 9600 baud */
     UART_CONFIG = FIELD(UART_CONFIG_PARITY, UART_PARITY_None);
-                                        /* format 8N1 */
+    /* format 8N1 */
     UART_PSELTXD = USB_TX;              /* choose pins */
     UART_PSELRXD = USB_RX;
     UART_ENABLE = UART_ENABLE_Enabled;
@@ -981,16 +940,14 @@ static void kprintf_setup(void)
 }
 
 /* kputc -- send output character */
-static void kputc(char ch)
-{
+static void kputc(char ch) {
     UART_TXD = ch;
-    while (! UART_TXDRDY) { }
+    while (!UART_TXDRDY) {}
     UART_TXDRDY = 0;
 }
 
 /* kprintf_internal -- internal version of kprintf */
-static void kprintf_internal(char *fmt, ...)
-{
+static void kprintf_internal(char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
     do_print(kputc, fmt, va);
@@ -998,8 +955,7 @@ static void kprintf_internal(char *fmt, ...)
 }
 
 /* kprintf -- printf variant for debugging (disables interrupts) */
-void kprintf(char *fmt, ...)
-{
+void kprintf(char *fmt, ...) {
     va_list va;
     unsigned prev = get_primask();
     intr_disable();
@@ -1014,25 +970,23 @@ void kprintf(char *fmt, ...)
 }
 
 /* panic -- the unusual has happened.  Did you think it impossible? */
-void panic(char *fmt, ...)
-{
+void panic(char *fmt, ...) {
     va_list va;
     intr_disable();
-    kprintf_setup();     
+    kprintf_setup();
 
     kprintf_internal("\r\nPanic: ");
     va_start(va, fmt);
     do_print(kputc, fmt, va);
     va_end(va);
     if (os_current != NULL)
-         kprintf_internal(" in process %s", os_current->name);
+        kprintf_internal(" in process %s", os_current->name);
     kprintf_internal("\r\n");
 
     spin();
 }
 
 /* badmesg -- default case for switches on message type */
-void badmesg(int type)
-{
+void badmesg(int type) {
     panic("Bad message type %d", type);
 }
