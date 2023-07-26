@@ -189,28 +189,7 @@ static inline void make_ready(proc p) {
 
 /* choose_proc -- the current process is blocked: pick a new one */
 static inline void choose_proc(void) {
-#ifdef _SCHEDULING_OPT
-    // Find the queue with the highest priority (smallest average running time)
-    queue highest_priority_queue = NULL;
-    int highest_priority = NPRIO;
-    for (int p = 0; p < NPRIO; p++) {
-        queue q = &os_readyq[p];
-        if (q->head != NULL && p < highest_priority) {
-            highest_priority = p;
-            highest_priority_queue = q;
-        }
-    }
 
-    // Select the process at the head of the highest priority queue, if it exists
-    if (highest_priority_queue != NULL) {
-        os_current = highest_priority_queue->head;
-        highest_priority_queue->head = os_current->next;
-        os_current->next = NULL;
-        os_current->n_calls += 1;
-        DEBUG_SCHED(os_current->pid);
-        return;
-    }
-#else
     // Original sequential iteration through the queues
     for (int p = 0; p < NPRIO; p++) {
         queue q = &os_readyq[p];
@@ -221,7 +200,6 @@ static inline void choose_proc(void) {
             return;
         }
     }
-#endif
 
     // If no process is found in the queues, assign the idle process
     os_current = idle_proc;
