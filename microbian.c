@@ -186,10 +186,23 @@ static inline void make_ready(proc p) {
     }
 }
 
+#ifdef _SCHEDULING_OPT
+// Calculates the amount of time between two unsigned integers, handling overflow gracefully.
+unsigned delta(unsigned t1, unsigned t2) {
+    if (t1 > t2) {
+        // Assume overflow and treat t2 as such.
+        t2 += (unsigned)sizeof(unsigned);
+    }
+    return t2 - t1;
+}
+#endif
 
 /* choose_proc -- the current process is blocked: pick a new one */
 static inline void choose_proc(void) {
-
+#ifdef _SCHEDULING_OPT
+    TIMER0_CAPTURE[1];
+    os_current->age += delta(TIMER0_CC[0], TIMER0_CC[1]);
+#endif
     // Original sequential iteration through the queues
     for (int p = 0; p < NPRIO; p++) {
         queue q = &os_readyq[p];
@@ -197,6 +210,9 @@ static inline void choose_proc(void) {
             os_current = q->head;
             q->head = os_current->next;
             DEBUG_SCHED(os_current->pid);
+#ifdef _SCHEDULING_OPT
+            TIMER0_CAPTURE[0] = 1;
+#endif
             return;
         }
     }
@@ -204,6 +220,7 @@ static inline void choose_proc(void) {
     // If no process is found in the queues, assign the idle process
     os_current = idle_proc;
     DEBUG_SCHED(0);
+
 }
 
 
@@ -689,12 +706,6 @@ void __start(void) {
 
 /* SYSTEM CALL INTERFACE */
 
-/* Util function to measure time */
-unsigned timer0_value(void) {
-    TIMER0_CAPTURE[0] = 1;
-    return TIMER0_CC[0];
-}
-
 /* System call numbers */
 #define SYS_YIELD 0
 #define SYS_SEND 1
@@ -710,19 +721,10 @@ can't rely on the arguments still being in r0, r1, etc., because an
 interrupt may have intervened and trashed these registers. */
 
 #define sysarg(i, t) ((t) psp[R0_SAVE+(i)])
-// Calculates the amount of time between two unsigned integers, handling overflow gracefully.
-unsigned delta(unsigned t1, unsigned t2) {
-    if (t1 > t2) {
-        // Assume overflow and treat t2 as such.
-        t2 += (unsigned)sizeof(unsigned);
-    }
-    return t2 - t1;
-}
+
 
 /* system_call -- entry from system call traps */
 unsigned *system_call(unsigned *psp) {
-    unsigned t1, t2;
-
 
     short *pc = (short *) psp[PC_SAVE]; /* Program counter */
     int op = pc[-1] & 0xff;      /* Syscall number from svc instruction */
@@ -734,16 +736,10 @@ unsigned *system_call(unsigned *psp) {
     if (*(unsigned *) os_current->stack != BLANK)
         panic("Stack overflow");
 
-    t1 = timer0_value(); // start a timer to calculate the absolute age of the os_current *at the end of this call*.
     switch (op) {
         case SYS_YIELD:
             make_ready(os_current);
-            t2 = timer0_value();
-            os_current->age = os_current->age + delta(t1, t2);
-
             choose_proc();// os_current will have changed after this.
-            t1 = timer0_value(); // reset t1
-            t2 = t1; //reset t2
             break;
 
         case SYS_SEND:
@@ -765,12 +761,7 @@ unsigned *system_call(unsigned *psp) {
 
         case SYS_EXIT:
             os_current->state = DEAD;
-            t2 = timer0_value();
-            os_current->age = os_current->age + delta(t1, t2);
-
             choose_proc();// os_current will have changed after this.
-            t1 = timer0_value(); // reset t1
-            t2 = t1; //reset t2
             break;
 
         case SYS_DUMP:
@@ -796,8 +787,10 @@ unsigned *system_call(unsigned *psp) {
     }
 
 
-    t2 = timer0_value();
-    os_current->age += delta(t1, t2);
+#ifdef _SCHEDULING_OPT
+    TIMER0_CAPTURE[1] = 1;
+    os_current->age += delta(TIMER0_CC[0], TIMER0_CC[1]); //TODO: is good?
+#endif
     /* Return sp for next process to run */
     return os_current->sp;
 }

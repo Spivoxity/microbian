@@ -37,19 +37,19 @@ struct _proc {
     void *stack;              /* Stack area */
     unsigned stksize;         /* Stack size (bytes) */
     int priority;             /* Priority: 0 is highest */
-    unsigned long long age;   /* Age: how long this process has run for. Never going to overflow (too big).*/
     proc waiting;             /* Processes waiting to send */
     int pending;              /* Whether HARDWARE message pending */
     int filter;               /* Message type accepted by receive */
     message *msgbuf;          /* Pointer to message buffer */
 #ifdef _TIMEOUT
     int timeout;              /* Timeout for receive */
-
 #endif
 
 #ifdef _SCHEDULING_OPT
+
     unsigned long long n_ticks;
     unsigned long n_calls;
+    unsigned long long age;   /* Age: how long this process has run for. Never going to overflow (too big).*/
 #endif
     proc next;                /* Next process in ready or send queue */
 
