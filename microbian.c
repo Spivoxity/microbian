@@ -155,20 +155,22 @@ static inline void make_ready(proc p) {
 
 
 #ifdef _SCHEDULING_OPT // then the queue is by increasing score
-        if (score(p) > score(q->tail)) {
+        if (score(p) >= score(q->tail)) {
             q->tail->next = p;
             q->tail = p;
         } else {
+            // find first element in queue that has score bigger or equal to p,
+            // then insert **behind** that element.
             proc prev = NULL;
             proc curr = q->head;
 
-            while (curr != NULL && score(curr) <=
+            while (curr != NULL && score(curr) <
                                    score(p)) {//Normally, because the queue is ordered, the first condition will always be false.
                 prev = curr;
                 curr = curr->next;
             }
 
-            if (prev == NULL) {// p < q.head
+            if (prev == NULL) {// iff score(p) < score(q->head)
                 q->head = p;
                 q->head->next = curr;
             } else {
@@ -227,7 +229,7 @@ static inline void choose_proc(void) {
 }
 
 
-/* deliver_special -- devliver a specdzliverial message and mark the recipient ready */
+/* deliver_special -- deliver a special message and mark the recipient ready */
 static inline void deliver_special(proc pdst, int src, int type) {
     message *buf = pdst->msgbuf;
     if (buf) {
