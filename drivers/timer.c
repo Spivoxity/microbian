@@ -6,12 +6,8 @@
 
 static int TIMER_TASK;
 
-#ifdef UBIT_V1
-#define TICK 5                  // Interval between updates (ms)
-#endif
+
 #include "../defines.h" // for #define TICK 1
-#ifdef UBIT_V2
-#endif
 
 #define MAX_TIMERS 8
 
