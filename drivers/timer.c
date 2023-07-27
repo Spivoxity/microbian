@@ -1,13 +1,14 @@
 /* timer.c */
 /* Copyright (c) 2018-2020 J. M. Spivey */
 
-#include "../microbian.h"
 #include "hardware.h"
+#include "microbian.h"
 
 static int TIMER_TASK;
 
+#define NULL ((void *) 0)
 
-#include "../defines.h" // for #define TICK 1
+#include "defines.h" // for #define TICK 1
 
 #define MAX_TIMERS 8
 

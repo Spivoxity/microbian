@@ -3,8 +3,10 @@
 
 include config.mk
 
-EXAMPLES = ex-level.hex ex-valentine.hex ex-echo.hex ex-remote.hex \
-	ex-timeout.hex
+EXAMPLES = examples/ex-level.hex examples/ex-valentine.hex examples/ex-echo.hex examples/ex-remote.hex \
+	examples/ex-timeout.hex examples/ex-rng.hex
+
+INCLUDE = incl
 
 all: microbian.a startup.o
 
@@ -13,16 +15,16 @@ examples: $(EXAMPLES)
 ex-level.elf: accel.o
 
 CPU = -mcpu=$(CHIP) -mthumb
-CFLAGS = -O -g -Wall -ffreestanding -I $(BOARD)
+CFLAGS = -O -g -Wall -ffreestanding -I $(INCLUDE) -I $(BOARD)
 CC = arm-none-eabi-gcc
 AS = arm-none-eabi-as
 AR = arm-none-eabi-ar
 
 vpath %.c $(BOARD)
 
-DRIVERS = drivers/timer.o drivers/serial.o drivers/i2c.o drivers/radio.o drivers/display.o drivers/adc.o drivers/rng.o
+DRIVERS = drivers/accel.o drivers/timer.o drivers/serial.o drivers/i2c.o drivers/radio.o drivers/display.o drivers/adc.o drivers/rng.o
 
-MICROBIAN = microbian.o $(MPX).o $(DRIVERS) lib.o
+MICROBIAN = microbian.o $(MPX).o $(DRIVERS) lib.o process.o
 
 microbian.a: $(MICROBIAN)
 	$(AR) cr $@ $^
@@ -49,4 +51,4 @@ force:
 
 ###
 
-$(MICROBIAN) startup.o: microbian.h lib.h $(BOARD)/hardware.h
+$(MICROBIAN) startup.o: $(INCLUDE)/microbian.h $(INCLUDE)/lib.h $(BOARD)/hardware.h

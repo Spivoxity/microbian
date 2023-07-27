@@ -1,7 +1,7 @@
 // serial.c
 // Copyright (c) 2018 J. M. Spivey
 
-#include "../microbian.h"
+#include "microbian.h"
 #include "hardware.h"
 #include <stdarg.h>
 

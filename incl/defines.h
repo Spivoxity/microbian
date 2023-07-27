@@ -8,3 +8,13 @@ typedef unsigned char byte;
 #ifdef UBIT_V2
 #define TICK 1                  // helps with faster display update
 #endif
+
+/* Possible state values */
+#define DEAD 0
+#define ACTIVE 1
+#define SENDING 2
+#define RECEIVING 3
+#define SENDREC 4
+#define IDLING 5
+
+#define NO_TIME 0x80000000

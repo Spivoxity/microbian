@@ -1,7 +1,7 @@
 /* i2c.c */
 /* Copyright (c) 2019 J. M. Spivey */
 
-#include "../microbian.h"
+#include "microbian.h"
 #include "hardware.h"
 #include <stddef.h>
 

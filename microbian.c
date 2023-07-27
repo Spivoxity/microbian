@@ -1,10 +1,11 @@
 /* microbian.c */
 /* Copyright (c) 2018 J. M. Spivey */
 
-#include "microbian.h"
 #include "lib.h"
-#include <string.h>
+#include "microbian.h"
 #include "process.h"
+#include <string.h>
+
 #ifdef MICROBIAN_DEBUG
 
 
@@ -17,69 +18,16 @@ void debug_sched(int pid);
 
 
 
-/* Possible state values */
-#define DEAD 0
-#define ACTIVE 1
-#define SENDING 2
-#define RECEIVING 3
-#define SENDREC 4
-#define IDLING 5
-
-#define NO_TIME 0x80000000
-
-
-/* STORAGE ALLOCATION */
-
-/* Stack space for processes is allocated from the low end of the
-space between the static data and the main stack.  Process
-descriptors are allocated from the opposite end of the space; this
-is deliberate to reduce the likelihood that a process overrunning
-its stack space will destroy its own descriptor or that of its
-neighbour. */
-
-extern unsigned char __stack_limit[], __end[];
-
-static unsigned char *hbot = __end;
-static unsigned char *htop = __stack_limit;
-
-#define ROUNDUP(x, n)  (((x)+(n)-1) & ~((n)-1))
-
-/* sbrk -- allocate space at the bottom of the heap */
-static void *sbrk(int inc) {
-    hbot = (unsigned char *) ROUNDUP((unsigned) hbot, 8);
-    inc = ROUNDUP(inc, 8);
-
-    if (inc > htop - hbot)
-        panic("Microbian is out of memory");
-    void *result = hbot;
-    hbot += inc;
-    return result;
-}
-
-/* new_proc -- allocate a process descriptor from the top of the heap */
-static proc new_proc(void) {
-    if (htop - hbot < sizeof(struct _proc))
-        panic("No space for process");
-    htop -= sizeof(struct _proc);
-    return (proc) htop;
-}
-
-
-/* PROCESS TABLE */
-
-#define NPROCS 32
-
-static proc os_ptable[NPROCS];
-static unsigned os_nprocs = 0;
-
-static proc os_current;
-static proc idle_proc;
-
-#define BLANK 0xdeadbeef        /* Filler for initial stack */
 
 static void kprintf_setup(void);
 
 static void kprintf_internal(char *fmt, ...);
+
+/* PROCESS TABLE */
+
+proc os_current;
+proc idle_proc;
+
 
 /* pad -- pad string with spaces to a specified width */
 static void pad(char *buf, int width) {
@@ -235,7 +183,7 @@ static inline void deliver_special(proc pdst, int src, int type) {
 
 /* TIMEOUTS */
 
-/* Programs that include a timer may also use a form of receive() with
+/* Programs that incl a timer may also use a form of receive() with
 a timeout, so that a message of type TIMEOUT from hardware is
 delivered after an interval if no genuine message has arrived.
 
@@ -581,46 +529,6 @@ void hardfault_handler(void) {
 
 /* INITIALISATION */
 
-/* create_proc -- allocate and initialise process descriptor */
-static proc create_proc(char *name, unsigned stksize) {
-    int pid;
-    proc p;
-    unsigned char *stack;
-    unsigned *sp;
-
-    if (os_nprocs >= NPROCS)
-        panic("Too many processes");
-
-    /* Allocate descriptor and stack space */
-    pid = os_nprocs++;
-    p = os_ptable[pid] = new_proc();
-    stack = sbrk(stksize);
-    sp = (unsigned *) &stack[stksize];
-
-    /* Blank out the stack space to help detect overflow */
-    for (unsigned *p = (unsigned *) stack; p < sp; p++) *p = BLANK;
-
-    /* Fill in fields of the descriptor */
-    p->pid = pid;
-    strncpy(p->name, name, 15);
-    p->name[15] = '\0';
-    p->sp = sp;
-    p->stack = stack;
-    p->stksize = stksize;
-    p->state = ACTIVE;
-    p->priority = P_LOW;
-    p->waiting = 0;
-    p->pending = 0;
-    p->filter = ANY;
-#ifdef _TIMEOUT
-    p->timeout = NO_TIME;
-#endif
-    p->msgbuf = NULL;
-    p->next = NULL;
-
-    return p;
-}
-
 #define MAGIC 0xfffffffd        /* Magic value for exception return */
 #define INIT_PSR 0x01000000     /* Thumb bit is set */
 
@@ -872,6 +780,8 @@ void NOINLINE tick(int ms) {
 
 
 /* DEBUG PRINTING */
+
+
 
 /* The routines here work by reconfiguring the UART, disabling
 interrupts and polling: they should be used only for debugging. */

@@ -1,6 +1,8 @@
 #pragma once
 #include "defines.h"
 
+
+
 /* Possible priorities */
 #define P_HANDLER 0             /* Interrupt handler */
 #define P_HIGH 1                /* Responsive */
@@ -56,7 +58,26 @@ struct _proc {
 
 };
 
+
+/* PROCESS TABLE */
+
+#define NPROCS 32
+extern proc os_ptable[NPROCS];
+extern unsigned os_nprocs;
+
+
+
+#define BLANK 0xdeadbeef        /* Filler for initial stack */
+
+
+
 unsigned long long score(proc p);
 
 /* create_proc -- allocate and initialise process descriptor */
-static proc create_proc(char *name, unsigned stksize);
+proc create_proc(char *name, unsigned stksize);
+
+/* new_proc -- allocate a process descriptor from the top of the heap */
+proc new_proc(void);
+
+/* sbrk -- allocate space at the bottom of the heap */
+void *sbrk(int inc);

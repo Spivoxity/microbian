@@ -1,8 +1,8 @@
 // echo.c
 // Copyright (c) 2018 J. M. Spivey
 
-#include "../microbian.h"
-#include "../lib.h"
+#include "microbian.h"
+#include "lib.h"
 #include <string.h>
 
 void read_line(char *buf) {

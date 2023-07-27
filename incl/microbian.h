@@ -1,5 +1,6 @@
 /* microbian.h */
 /* Copyright (c) 2018 J. M. Spivey */
+#pragma once
 #include "process.h"
 #include "hardware.h"
 #include "defines.h"

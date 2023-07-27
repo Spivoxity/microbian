@@ -4,7 +4,7 @@
 /* A simple driver for the micro:bit LEDs with the same interface on
 V1 and V2. */
 
-#include "../microbian.h"
+#include "microbian.h"
 #include "hardware.h"
 #include <string.h>
 
