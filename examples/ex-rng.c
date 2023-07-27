@@ -39,7 +39,7 @@ void init(void)
 
  const unsigned die_faces[][6] =
         {
-            IMAGE(0, 0, 0, 0, 0,
+        IMAGE(0, 0, 0, 0, 0,
                       0, 0, 0, 0, 0,
                       0, 0, 1, 0, 0,
                       0, 0, 0, 0, 0,

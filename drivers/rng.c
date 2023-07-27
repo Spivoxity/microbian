@@ -76,8 +76,9 @@ static message process_request(message *m, int client) {
 
     if (n_avail > 0) {
         // If there are available random numbers, reply immediately
-        (*m).int1 = rxbuf[rx_outp];
-        send(client, REPLY, m);
+        m->int1 = rxbuf[rx_outp];
+        m->type = REPLY;
+        send(client, m);
         rx_outp = wrap(rx_outp + 1);
         n_avail--;
     } else {
@@ -147,7 +148,8 @@ static void send_to_reader(message * m, int reader) {// Send random number to th
      * The reader only needs the int1 field of the message.
      */
     (*m).int1 = rxbuf[rx_outp];
-    send(readers[reader], REPLY, m);
+    m->type=REPLY;
+    send(readers[reader], m);
     rx_outp = wrap(rx_outp + 1);
     n_avail--;
     readers[reader] = NO_CLIENT;
@@ -182,6 +184,7 @@ static void new_number(unsigned char n){
 /* rng_get -- for clients to request a number */
 unsigned char rng_get(void) {
     message m;
-    sendrec(RNG_TASK, GET_RN, &m);
+    m.type = GET_RN;
+    sendrec(RNG_TASK, &m);
     return m.int1;
 }

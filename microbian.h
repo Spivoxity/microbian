@@ -1,6 +1,7 @@
 /* microbian.h */
 /* Copyright (c) 2018 J. M. Spivey */
 #include "process.h"
+#include "hardware.h"
 #include "defines.h"
 
 #define NULL ((void *) 0)

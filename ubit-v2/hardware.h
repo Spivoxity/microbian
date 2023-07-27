@@ -1,6 +1,6 @@
 /* common/hardware.h */
 /* Copyright (c) 2018-20 J. M. Spivey */
-
+#pragma once
 #define UBIT 1
 #define UBIT_V2 1
 

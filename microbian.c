@@ -3,12 +3,11 @@
 
 #include "microbian.h"
 #include "lib.h"
-#include "hardware.h"
 #include <string.h>
 #include "process.h"
-
-
 #ifdef MICROBIAN_DEBUG
+
+
 void debug_sched(int pid);
 #define DEBUG_SCHED(pid) debug_sched(pid)
 #else
