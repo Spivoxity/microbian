@@ -16,9 +16,6 @@ void debug_sched(int pid);
 #endif
 
 
-
-
-
 static void kprintf_setup(void);
 
 static void kprintf_internal(char *fmt, ...);
@@ -38,18 +35,11 @@ static void pad(char *buf, int width) {
     }
 }
 
+static void print_process(char *buf, int pid);
+
 /* microbian_dump -- display process states */
 static void microbian_dump(void) {
     char buf[16];
-
-    static const char *status[] = {
-            "[DEAD]   ",
-            "[ACTIVE] ",
-            "[SEND]   ",
-            "[RECEIVE]",
-            "[SENDREC]",
-            "[IDLE]   "
-    };
 
     kprintf_setup();
     kprintf_internal("\r\nPROCESS DUMP\r\n");
@@ -58,20 +48,31 @@ static void microbian_dump(void) {
        more painful than it should be. */
 
     for (int pid = 0; pid < os_nprocs; pid++) {
-        proc p = os_ptable[pid];
+        print_process(buf, status, pid);
 
-        /* Measure free space on the process stack */
-        unsigned *z = (unsigned *) p->stack;
-        while (*z == BLANK) z++;
-        unsigned free = (char *) z - (char *) p->stack;
-
-        sprintf(buf, "%u/%u", p->stksize - free, p->stksize);
-        pad(buf, 9);
-        kprintf_internal("%s%d: %s %x stk=%s %s\r\n",
-                         (pid < 10 ? " " : ""), pid,
-                         status[p->state], (unsigned) p->stack,
-                         buf, p->name);
     }
+}
+
+/* Print a single process */
+static void print_process(char *buf, int pid) {
+    proc p = os_ptable[pid];
+
+    /* Measure free space on the process stack */
+    unsigned *z = (unsigned *) p->stack;
+    while (*z == BLANK) z++;
+    unsigned free = (char *) z - (char *) p->stack;
+
+    sprintf(buf, "%u/%u", p->stksize - free, p->stksize);
+    pad(buf, 9);
+    kprintf_internal("%s%d: %s ",(pid < 10 ? " " : ""), pid,
+                     status[p->state]);
+#ifdef _SCHEDULING_OPT
+    kprintf_internal(
+                     "age:%llu n_ticks:%llu n_calls:%lu", p->age, p->n_ticks, p->n_calls);
+#endif
+    kprintf_internal("%x stk=%s %s\r\n",
+                     (unsigned) p->stack,
+                     buf, p->name);
 }
 
 

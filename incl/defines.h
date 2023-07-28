@@ -18,3 +18,13 @@ typedef unsigned char byte;
 #define IDLING 5
 
 #define NO_TIME 0x80000000
+
+/* corresponding enum */
+const char *status[] = {
+        "[DEAD]   ",
+        "[ACTIVE] ",
+        "[SEND]   ",
+        "[RECEIVE]",
+        "[SENDREC]",
+        "[IDLE]   "
+};
