@@ -48,7 +48,7 @@ static void microbian_dump(void) {
        more painful than it should be. */
 
     for (int pid = 0; pid < os_nprocs; pid++) {
-        print_process(buf, status, pid);
+        print_process(buf, pid);
 
     }
 }
