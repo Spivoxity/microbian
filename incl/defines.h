@@ -22,11 +22,4 @@ typedef unsigned char byte;
 #define NO_TIME 0x80000000
 
 /* corresponding enum */
-const char *status[] = {
-        "[DEAD]   ",
-        "[ACTIVE] ",
-        "[SEND]   ",
-        "[RECEIVE]",
-        "[SENDREC]",
-        "[IDLE]   "
-};
+extern const char *status[];

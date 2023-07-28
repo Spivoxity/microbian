@@ -21,6 +21,8 @@ static void kprintf_setup(void);
 
 static void kprintf_internal(char *fmt, ...);
 
+
+
 /* PROCESS TABLE */
 
 proc os_current;
