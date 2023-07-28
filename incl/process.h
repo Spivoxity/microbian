@@ -1,6 +1,7 @@
 #pragma once
-#include "defines.h"
+#include <defines.h>
 
+typedef unsigned char byte;
 
 
 /* Possible priorities */

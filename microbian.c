@@ -5,6 +5,7 @@
 #include "microbian.h"
 #include "process.h"
 #include <string.h>
+#include "defines.h"
 
 #ifdef MICROBIAN_DEBUG
 

@@ -1,3 +1,5 @@
+#pragma once
+#include "hardware.h"
 typedef unsigned char byte;
 #define _TIMEOUT 1
 #define _SCHEDULING_OPT 1
