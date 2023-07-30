@@ -689,6 +689,7 @@ unsigned *system_call(unsigned *psp) {
         case SYS_TICK:
 #ifdef _SCHEDULING_OPT
             os_current->n_ticks += 1;
+            //TODO should make_ready be called here?
 #endif
 
 #ifdef _TIMEOUT
