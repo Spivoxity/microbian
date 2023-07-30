@@ -51,9 +51,9 @@ struct _proc {
 
 #ifdef _SCHEDULING_OPT
 
-    unsigned long long n_ticks;
+    unsigned long n_ticks;
     unsigned long n_calls;
-    unsigned long long age;   /* Age: how long this process has run for. Never going to overflow (too big).*/
+    unsigned long age;   /* Age: how long this process has run for. Never going to overflow (too big).*/
 #endif
     proc next;                /* Next process in ready or send queue */
 
@@ -72,7 +72,7 @@ extern unsigned os_nprocs;
 
 
 
-unsigned long long score(proc p);
+unsigned long score(proc p);
 
 /* create_proc -- allocate and initialise process descriptor */
 proc create_proc(char *name, unsigned stksize);

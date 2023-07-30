@@ -71,7 +71,7 @@ static void print_process(char *buf, int pid) {
                      status[p->state]);
 #ifdef _SCHEDULING_OPT
     kprintf_internal(
-                     "age:%llu n_ticks:%llu n_calls:%lu", p->age, p->n_ticks, p->n_calls);
+                     "age:%lu n_ticks:%lu n_calls:%lu", p->age, p->n_ticks, p->n_calls);
 #endif
     kprintf_internal("%x stk=%s %s\r\n",
                      (unsigned) p->stack,
@@ -601,7 +601,6 @@ void __start(void) {
     TIMER0_BITMODE = TIMER_BITMODE_32Bit;
     TIMER0_PRESCALER = 4;      // 1MHz = 16MHz / 2^4
     TIMER0_CLEAR = 1;
-    TIMER0_CC[0] = 1000 * TICK;
     TIMER0_START = 1;
 #endif
     /* Call the application's setup function */
@@ -704,6 +703,8 @@ unsigned *system_call(unsigned *psp) {
 #endif
     /* Return sp for next process to run */
     return os_current->sp;
+
+
 }
 
 /* cxt_switch -- context switch following interrupt */
