@@ -140,10 +140,7 @@ static inline void make_ready(proc p) {
 #ifdef _SCHEDULING_OPT
 // Calculates the amount of time between two unsigned integers, handling overflow gracefully.
 unsigned delta(unsigned t1, unsigned t2) {
-    if (t1 > t2) {
-        // Assume overflow and treat t2 as such.
-        t2 += (unsigned)sizeof(unsigned);
-    }
+
     return t2 - t1;
 }
 #endif
