@@ -143,14 +143,13 @@ unsigned delta(unsigned t1, unsigned t2) {
 
     return t2 - t1;
 }
+#define TIMER_START_REGISTER 0
+#define TIMER_END_REGISTER 1
 #endif
+
 
 /* choose_proc -- the current process is blocked: pick a new one */
 static inline void choose_proc(void) {
-#ifdef _SCHEDULING_OPT
-    TIMER0_CAPTURE[1];
-    os_current->age += delta(TIMER0_CC[0], TIMER0_CC[1]);
-#endif
     // Original sequential iteration through the queues
     for (int p = 0; p < NPRIO; p++) {
         queue q = &os_readyq[p];
@@ -158,9 +157,6 @@ static inline void choose_proc(void) {
             os_current = q->head;
             q->head = os_current->next;
             DEBUG_SCHED(os_current->pid);
-#ifdef _SCHEDULING_OPT
-            TIMER0_CAPTURE[0] = 1;
-#endif
             return;
         }
     }
@@ -583,6 +579,15 @@ static void idle_task(void) {
     while (1) pause();
 }
 
+#ifdef _SCHEDULING_OPT
+#define RECORD_TIMER0_START() \
+    TIMER0_CAPTURE[TIMER_START_REGISTER] = 1;//putting the current timer value into TIMER0_CC[TIMER_START_REGISTER]
+
+#define RECORD_TIMER0_END() \
+    TIMER0_CAPTURE[TIMER_END_REGISTER] = 1; \
+    os_current->age += delta(TIMER0_CC[TIMER_START_REGISTER], TIMER0_CC[TIMER_END_REGISTER]);
+//putting the current timer value into TIMER0_CC[TIMER_START_REGISTER]
+#endif
 
 /* __start -- start the operating system */
 void __start(void) {
@@ -599,6 +604,7 @@ void __start(void) {
     TIMER0_PRESCALER = 4;      // 1MHz = 16MHz / 2^4
     TIMER0_CLEAR = 1;
     TIMER0_START = 1;
+    RECORD_TIMER0_START();
 #endif
     /* Call the application's setup function */
     init();
@@ -638,7 +644,9 @@ unsigned *system_call(unsigned *psp) {
 
     /* Save sp of the current process */
     os_current->sp = psp;
-
+#ifdef _SCHEDULING_OPT
+    RECORD_TIMER0_END();
+#endif
     /* Check for stack overflow */
     if (*(unsigned *) os_current->stack != BLANK)
         panic("Stack overflow");
@@ -695,8 +703,7 @@ unsigned *system_call(unsigned *psp) {
 
 
 #ifdef _SCHEDULING_OPT
-    TIMER0_CAPTURE[1] = 1;
-    os_current->age += delta(TIMER0_CC[0], TIMER0_CC[1]); //TODO: is good?
+    RECORD_TIMER0_START();
 #endif
     /* Return sp for next process to run */
     return os_current->sp;
@@ -707,8 +714,14 @@ unsigned *system_call(unsigned *psp) {
 /* cxt_switch -- context switch following interrupt */
 unsigned *cxt_switch(unsigned *psp) {
     os_current->sp = psp;
+#ifdef _SCHEDULING_OPT
+    RECORD_TIMER0_END();
+#endif
     make_ready(os_current);
     choose_proc();
+#ifdef _SCHEDULING_OPT
+    RECORD_TIMER0_START();
+#endif
     return os_current->sp;
 }
 
