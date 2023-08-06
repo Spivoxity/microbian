@@ -31,7 +31,8 @@ microbian.a: $(MICROBIAN)
 	arm-none-eabi-objcopy -O ihex $< $@
 
 %.elf: %.o startup.o microbian.a
-	$(CC) $(CPU) $(CFLAGS) -T $(LSCRIPT) -nostdlib $^ -lc -lgcc -o $@
+	$(CC) $(CPU) $(CFLAGS) -T $(LSCRIPT) -nostdlib $^ -lc -lgcc \
+		-o $@ -Wl,-Map,$*.map
 
 %.o: %.c
 	$(CC) $(CPU) $(CFLAGS) -c $< -o $@ 

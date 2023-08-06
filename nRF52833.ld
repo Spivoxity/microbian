@@ -76,6 +76,13 @@ SECTIONS {
         __xram_end = .;
     } > CODERAM
 
+    /DISCARD/ : {
+        /* Some parts of the GCC library have C++ exception data,
+           which is of no use to us. */
+        *(.ARM.extab)
+        *(.ARM.exidx)
+    }
+
     .data : AT (LOADADDR(.xram) + SIZEOF(.xram)) {
         __data_start = .;
         *(.data*)
