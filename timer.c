@@ -154,10 +154,10 @@ unsigned timer_micros(void) {
     TIMER1_CAPTURE[1] = 1;      // Capture count before testing event
     extra = TIMER1_COMPARE[0];  // Inspect the expiry event
     TIMER1_CAPTURE[2] = 1;      // Capture count afterwards
-    ticks1 = TIMER1_CC[1];
-    ticks2 = TIMER1_CC[2];
     my_millis = millis;
     intr_enable();
+    ticks1 = TIMER1_CC[1];
+    ticks2 = TIMER1_CC[2];
 
     /* Correct my_millis if the timer expired */
     if (extra && ticks1 <= ticks2) my_millis += TICK;

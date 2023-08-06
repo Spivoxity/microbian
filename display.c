@@ -22,7 +22,7 @@ const image blank =
           0,0,0,0,0);
 
 /* image_clear -- set image to blank */
-void image_clear(image img) {
+void image_clear(unsigned *img) {
     memcpy(img, blank, sizeof(image));
 }
 
@@ -57,7 +57,7 @@ static unsigned map_pixel(int x, int y) {
 #endif
 
 /* image_set -- switch on a single pixel in an image */
-void image_set(int x, int y, image img) {
+void image_set(int x, int y, unsigned *img) {
     if (x < 0 || x >= 5 || y < 0 || y >= 5) return;
     unsigned p = map_pixel(x, y);
     CLR_BIT(img[p >> 5], p & 0x1f);
@@ -120,7 +120,7 @@ void display_task(int dummy) {
 }
 
 /* display_show -- set display from image */
-void display_show(const image img) {
+void display_show(const unsigned *img) {
     memcpy(display_image, img, sizeof(image));
 }
 

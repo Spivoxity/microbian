@@ -84,7 +84,6 @@ to the function with each character.  Different putc-functions and
 different interpretations of the pointer q are needed for different
 applications. */
 
-
 /* do_string -- output or buffer each character of a string */
 static void do_string(void (*putc)(void *, char), void *q, char *str) {
     for (char *p = str; *p != '\0'; p++)
@@ -137,15 +136,15 @@ static void f_printc(void *q, char c) {
     f(c);
 }
 
+/* do_print -- public skeleton for printf */
+void do_print(void (*putc)(char), const char *fmt, va_list va) {
+    _do_print(f_printc, (void *) putc, fmt, va);
+}
+
 /* f_storec -- putc-function that uses q as a character pointer */
 void f_storec(void *q, char c) {
     char **p = q;
     *(*p)++ = c;
-}
-
-/* do_print -- public skeleton for printf */
-void do_print(void (*putc)(char), const char *fmt, va_list va) {
-    _do_print(f_printc, (void *) putc, fmt, va);
 }
 
 /* sprintf -- print to a character array */
@@ -198,7 +197,7 @@ void printf(const char *fmt, ...) {
     va_start(va, fmt);
     _do_print(f_bufferc, &b, fmt, va);
     va_end(va);
-    flush(&b);
+    if (b.nbuf > 0) flush(&b);
 }
 
 /* prandom -- pseudorandom numbers in the range [1 .. 2^31-1) */
