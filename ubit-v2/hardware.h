@@ -1122,7 +1122,7 @@ extern unsigned volatile * const gpio_base[2];
     ((gpio_base[PORT(pin)] + (GPIO0_PINCNF - GPIO0_BASE))[PIN(pin)])
 
 /* gpio_dir -- set GPIO direction */
-inline void gpio_dir(unsigned pin, unsigned dir) {
+INLINE void gpio_dir(unsigned pin, unsigned dir) {
     if (dir)
         _GPIO_REG(PORT(pin), DIRSET) = BIT(PIN(pin));
     else
@@ -1130,17 +1130,17 @@ inline void gpio_dir(unsigned pin, unsigned dir) {
 }
 
 /* gpio_connect -- connect pin for input */
-inline void gpio_connect(unsigned pin) {
+INLINE void gpio_connect(unsigned pin) {
     SET_FIELD(_GPIO_PINCNF(pin), GPIO_PINCNF_INPUT, GPIO_INPUT_Connect);
 }
 
 /* gpio_drive -- set GPIO drive strength */
-inline void gpio_drive(unsigned pin, unsigned mode) {
+INLINE void gpio_drive(unsigned pin, unsigned mode) {
     SET_FIELD(_GPIO_PINCNF(pin), GPIO_PINCNF_DRIVE, mode);
 }
 
 /* gpio_out -- set GPIO output value */
-inline void gpio_out(unsigned pin, unsigned value) {
+INLINE void gpio_out(unsigned pin, unsigned value) {
     if (value)
         _GPIO_REG(PORT(pin), OUTSET) = BIT(PIN(pin));
     else
@@ -1148,7 +1148,7 @@ inline void gpio_out(unsigned pin, unsigned value) {
 }
 
 /* gpio_in -- get GPIO input bit */
-inline unsigned gpio_in(unsigned pin) {
+INLINE unsigned gpio_in(unsigned pin) {
     return GET_BIT(_GPIO_REG(PORT(pin), IN), PIN(pin));
 }
 
