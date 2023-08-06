@@ -680,6 +680,10 @@ void delay_loop(unsigned usec);
 
 /* GPIO convenience */
 
+#ifndef INLINE
+#define INLINE inline
+#endif
+
 /* gpio_dir -- set GPIO direction */
 inline void gpio_dir(unsigned pin, unsigned dir) {
     if (dir)

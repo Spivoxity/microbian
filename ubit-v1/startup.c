@@ -1,6 +1,7 @@
 /* common/startup.c */
 /* Copyright (c) 2018 J. M. Spivey */
 
+#define INLINE                  /* Create actual copies of inline functions */
 #include "hardware.h"
 
 /* init -- main program, creates application processes */
