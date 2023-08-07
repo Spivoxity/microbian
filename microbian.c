@@ -697,7 +697,8 @@ void __start(void)
 #define SYS_SENDREC 3
 #define SYS_EXIT 4
 #define SYS_DUMP 5
-#define SYS_TICK 6
+#define SYS_RECEIVET 6
+#define SYS_TICK 7
 
 /* System calls retrieve their arguments from the exception frame that
 was saved by the SVC instruction on entry to the operating system.  We
@@ -732,7 +733,7 @@ unsigned *system_call(unsigned *psp)
     case SYS_RECEIVE:
         mini_receive(sysarg(0, int), sysarg(1, message *)
 #ifdef _TIMEOUT
-                     , sysarg(2, int)
+                     , -1
 #endif
             );
         break;
@@ -754,6 +755,11 @@ unsigned *system_call(unsigned *psp)
         break;
 
 #ifdef _TIMEOUT
+    case SYS_RECEIVET:
+        mini_receive(sysarg(0, int), sysarg(1, message *),
+                     sysarg(2, int));
+        break;
+
     case SYS_TICK:
         mini_tick(sysarg(0, int));
         break;
@@ -786,18 +792,6 @@ retrieves the call number and arguments from the exception frame.
 Calls to these functions must not be inlined, or the arguments will
 not be found in the right places. */
 
-#define NOINLINE __attribute((noinline))
-
-void NOINLINE yield(void)
-{
-    syscall(SYS_YIELD);
-}
-
-void NOINLINE send(int dest, message *msg)
-{
-    syscall(SYS_SEND);
-}
-
 void send_msg(int dest, int type)
 {
     message m;
@@ -811,47 +805,6 @@ void send_int(int dest, int type, int val)
     m.type = type;
     m.int1 = val;
     send(dest, &m);
-}
-
-#ifdef _TIMEOUT
-
-void NOINLINE receive_t(int type, message *msg, int timeout)
-{
-    syscall(SYS_RECEIVE);
-}
-
-void receive(int type, message *msg)
-{
-    receive_t(type, msg, -1);
-}
-
-#else
-
-void NOINLINE receive(int type, message *msg)
-{
-    syscall(SYS_RECEIVE);
-}
-
-#endif
-
-void NOINLINE sendrec(int dest, message *msg)
-{
-    syscall(SYS_SENDREC);
-}
-
-void NOINLINE exit(void)
-{
-    syscall(SYS_EXIT);
-}
-
-void NOINLINE dump(void)
-{
-    syscall(SYS_DUMP);
-}
-
-void NOINLINE tick(int ms)
-{
-    syscall(SYS_TICK);
 }
 
 

@@ -2,5 +2,6 @@ syntax: glob
 *.o
 *.elf
 *.hex
+*.map
 microbian.a
 config.mk
