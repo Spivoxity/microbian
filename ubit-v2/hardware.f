@@ -973,6 +973,10 @@ void delay_loop(unsigned usec);
 
 
 /* GPIO convenience */
+#ifndef INLINE
+#define INLINE inline
+#endif
+
 
 /* Some C language tricks are needed for us to refer to the two GPIO
    ports uniformly. */

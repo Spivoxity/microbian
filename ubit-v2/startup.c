@@ -2,6 +2,7 @@
 /* Copyright (c) 2018 J. M. Spivey */
 
 #include "hardware.h"
+#define INLINE /* Create actual copies of inline functions */
 
 /* init -- main program, creates application processes */
 void init(void);
