@@ -12,7 +12,7 @@ all: microbian.a startup.o
 
 examples: $(EXAMPLES)
 
-ex-level.elf: accel.o
+ex-level.elf: drivers/accel.o examples/ex-level.o examples/ex-level.elf
 
 CPU = -mcpu=$(CHIP) -mthumb
 CFLAGS = -O -g -Wall -ffreestanding -I $(INCLUDE) -I $(BOARD)
@@ -24,7 +24,7 @@ vpath %.c $(BOARD)
 
 DRIVERS = drivers/accel.o drivers/timer.o drivers/serial.o drivers/i2c.o drivers/radio.o drivers/display.o drivers/adc.o drivers/rng.o
 
-MICROBIAN = microbian.o $(MPX).o $(DRIVERS) lib.o process.o
+MICROBIAN = microbian.o $(MPX).o defines.o process.o lib.o $(DRIVERS)
 
 microbian.a: $(MICROBIAN)
 	$(AR) cr $@ $^
@@ -33,7 +33,8 @@ microbian.a: $(MICROBIAN)
 	arm-none-eabi-objcopy -O ihex $< $@
 
 %.elf: %.o startup.o microbian.a
-	$(CC) $(CPU) $(CFLAGS) -T $(LSCRIPT) -nostdlib $^ -lc -lgcc -o $@
+	$(CC) $(CPU) $(CFLAGS) -T $(LSCRIPT) -nostdlib $^ -lc -lgcc \
+    		-o $@ -Wl,-Map,$*.map
 
 %.o: %.c
 	$(CC) $(CPU) $(CFLAGS) -c $< -o $@ 
@@ -45,7 +46,7 @@ microbian.a: $(MICROBIAN)
 	./hwdesc $< >$@
 
 clean: force
-	rm -f microbian.a *.o *.elf *.hex drivers/*.o
+	rm -f microbian.a *.o *.elf *.hex drivers/*.o examples/*.o
 
 force:
 
