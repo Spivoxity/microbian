@@ -59,6 +59,7 @@ void yield(void);
 void send(int dst, message *msg);
 void send_msg(int dst, int type);
 void send_int(int dst, int type, int val);
+void send_ptr(int dst, int type, void *ptr);
 
 /* receive -- receive a message */
 void receive(int type, message *msg);

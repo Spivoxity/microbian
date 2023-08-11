@@ -651,8 +651,8 @@ int start(char *name, void (*body)(int), int arg, int stksize)
     return p->pid;
 }
 
-/* set_stack -- enter thread mode with specified stack (see mpx.s) */
-void set_stack(unsigned *sp);
+/* __run -- enter thread mode with specified stack (see mpx.s) */
+void __run(void (*task)(void), unsigned *sp);
 
 /* init -- main program, creates application processes */
 void init(void);
@@ -683,8 +683,7 @@ void __start(void)
     /* The main program morphs into the idle process. */
     os_current = idle_proc;
     DEBUG_SCHED(0);
-    set_stack(os_current->sp);
-    idle_task();
+    __run(idle_task, os_current->sp); /* Never returns */
 }
 
 
@@ -785,12 +784,53 @@ unsigned *cxt_switch(unsigned *psp)
 
 /* SYSTEM CALL STUBS */
 
-/* Each function defined here leaves its arguments in r0, r1, etc.,
-and executes an svc instruction with operand equal to the system call
-number.  After state has been saved, system_call() is invoked and
-retrieves the call number and arguments from the exception frame.
-Calls to these functions must not be inlined, or the arguments will
-not be found in the right places. */
+/* These stubs are written using the 'naked' attribute so as to
+prevent GCC's optimiser from messing them up.  Without it, the
+assembly instructions would need to be laboriously annotated with
+what registers and memory they read and write. */
+
+#define SYSCALL      __attribute__((naked))
+#define syscall(op)  asm ("svc %0; bx lr" : : "i"(op))
+
+void SYSCALL yield(void)
+{
+    syscall(SYS_YIELD);
+}
+
+void SYSCALL send(int dest, message *msg)
+{
+    syscall(SYS_SEND);
+}
+
+void SYSCALL receive(int type, message *msg)
+{
+    syscall(SYS_RECEIVE);
+}
+
+void SYSCALL sendrec(int dest, message *msg)
+{
+    syscall(SYS_SENDREC);
+}
+
+void SYSCALL exit(void)
+{
+    syscall(SYS_EXIT);
+}
+
+void SYSCALL dump(void)
+{
+    syscall(SYS_DUMP);
+}
+
+void SYSCALL receive_t(int type, message *msg, int timeout)
+{
+    syscall(SYS_RECEIVET);
+}
+
+void SYSCALL tick(int ms)
+{
+    syscall(SYS_TICK);
+}
 
 void send_msg(int dest, int type)
 {
@@ -804,6 +844,14 @@ void send_int(int dest, int type, int val)
     message m;
     m.type = type;
     m.int1 = val;
+    send(dest, &m);
+}
+
+void send_ptr(int dest, int type, void *ptr)
+{
+    message m;
+    m.type = type;
+    m.ptr1 = ptr;
     send(dest, &m);
 }
 
