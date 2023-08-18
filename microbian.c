@@ -581,7 +581,8 @@ static void idle_task(void) {
 
 #ifdef _SCHEDULING_OPT
 #define RECORD_TIMER0_START() \
-    TIMER0_CAPTURE[TIMER_START_REGISTER] = 1;//putting the current timer value into TIMER0_CC[TIMER_START_REGISTER]
+    TIMER0_CAPTURE[TIMER_START_REGISTER] = 1; \
+    os_current->n_calls ++ ; //putting the current timer value into TIMER0_CC[TIMER_START_REGISTER], and count a call more for os_current.
 
 #define RECORD_TIMER0_END() \
     TIMER0_CAPTURE[TIMER_END_REGISTER] = 1; \
