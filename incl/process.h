@@ -30,12 +30,13 @@ created.  The next field in the descriptor allows each process to be
 linked into at most one queue -- either the queue of ready processes
 at some priority level, or the queue of senders waiting to deliver a
 message to a particular receiver process. */
+#define PROCESS_NAME_SIZE 15
 
 typedef struct _proc *proc;
 
 struct _proc {
     int pid;                  /* Process ID (equal to index) */
-    char name[16];            /* Name for debugging */
+    char name[PROCESS_NAME_SIZE + 1];  /* Name for debugging */ //add 1 for \0 character.
     unsigned state;           /* SENDING, RECEIVING, etc. */
     unsigned *sp;             /* Saved stack pointer */
     void *stack;              /* Stack area */
@@ -61,7 +62,6 @@ struct _proc {
 
 
 /* PROCESS TABLE */
-
 #define NPROCS 32
 extern proc os_ptable[NPROCS];
 extern unsigned os_nprocs;

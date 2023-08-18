@@ -29,8 +29,8 @@ proc create_proc(char *name, unsigned stksize) {
 
     /* Fill in fields of the descriptor */
     p->pid = pid;
-    strncpy(p->name, name, 15);
-    p->name[15] = '\0';
+    strncpy(p->name, name, PROCESS_NAME_SIZE);
+    p->name[PROCESS_NAME_SIZE] = '\0';
     p->sp = sp;
     p->stack = stack;
     p->stksize = stksize;
