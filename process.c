@@ -6,7 +6,7 @@
 proc os_ptable[NPROCS];
 unsigned os_nprocs = 0;
 
-unsigned long score(proc p){return p->age/p->n_calls;}
+unsigned long score(proc p){return p->age/(p->n_calls == 0 ? 1 : p->n_calls);} // If there are no calls, then the score should be zero.
 
 /* create_proc -- allocate and initialise process descriptor */
 proc create_proc(char *name, unsigned stksize) {
