@@ -1061,7 +1061,6 @@ typedef unsigned image[NIMG];
                            asm volatile ("mrs %0, primask" : "=r"(x)); x; })
 #define set_primask(x)  asm volatile ("msr primask, %0" : : "r"(x))
 #define nop()           asm volatile ("nop")
-#define syscall(op)     asm volatile ("svc %0" : : "i"(op))
 
 /* pause() -- disabled on V2 owing to long wakeup time */
 #define pause()         /* asm volatile ("wfe") */
