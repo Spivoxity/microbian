@@ -107,8 +107,23 @@ void irq_priority(int irq, unsigned prio)
         SET_BYTE(NVIC_IPR[irq >> 2], irq & 0x3, prio);
 }
      
-/* See hardware.h for macros enable_irq, disable_irq, clear_pending, 
-reschedule */
+/* enable_irq -- enable interrupts from an IRQ */
+void enable_irq(int irq)
+{
+    NVIC_ISER[irq >> 5] = BIT(irq & 0x1f);
+}
+
+/* disable_irq -- disable interrupts from a specific IRQ */
+void disable_irq(int irq)
+{
+    NVIC_ICER[irq >> 5] = BIT(irq & 0x1f);
+}
+
+/* clear_pending -- clear pending interrupt from an IRQ */
+void clear_pending(int irq)
+{
+    NVIC_ICPR[irq >> 5] = BIT(irq & 0x1f);
+}
 
 
 /*  INTERRUPT VECTORS */

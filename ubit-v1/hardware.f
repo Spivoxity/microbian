@@ -660,13 +660,13 @@ INSTANCE adc ADC @ 0x40007000;
 void irq_priority(int irq, unsigned priority);
 
 /* enable_irq -- enable interrupts from an IRQ */
-#define enable_irq(irq)  NVIC_ISER[0] = BIT(irq)
+void enable_irq(int irq);
 
 /* disable_irq -- disable interrupts from a specific IRQ */
-#define disable_irq(irq)  NVIC_ICER[0] = BIT(irq)
+void disable_irq(int irq);
 
 /* clear_pending -- clear pending interrupt from an IRQ */
-#define clear_pending(irq)  NVIC_ICPR[0] = BIT(irq)
+void clear_pending(int irq);
 
 /* reschedule -- request PendSV interrupt */
 #define reschedule()  SCB_ICSR = BIT(SCB_ICSR_PENDSVSET)
