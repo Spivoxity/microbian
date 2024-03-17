@@ -117,9 +117,13 @@ argument to be a macro that expands the a 'position, width' pair. */
 
 
 /* Device registers */
-#define _BASE(addr) ((unsigned volatile *) addr)
 #define _REG(ty, addr) (* (ty volatile *) addr)
 #define _ARR(ty, addr) ((ty volatile *) addr)
+
+#define _PADDING(n) unsigned char _PAD(__LINE__)[n]
+#define _PAD(lnum) _JOIN(_pad, lnum)
+#define _JOIN(x, y) x##y
+
 
 /* Common layout for DMA parameters */
 typedef struct {
@@ -131,7 +135,6 @@ typedef struct {
 
 /* System contol block */
 
-#define SCB_BASE                        _BASE(0xe000ed00)
 #define SCB_CPUID                       _REG(unsigned, 0xe000ed00)
 #define SCB_ICSR                        _REG(unsigned, 0xe000ed04)
 #define   SCB_ICSR_PENDSVSET __BIT(28)
@@ -145,14 +148,12 @@ typedef struct {
 
 /* Debug */
 
-#define DEBUG_BASE                      _BASE(0xe000ed00)
 #define DEBUG_DEMCR                     _REG(unsigned, 0xe000edfc)
 #define   DEBUG_DEMCR_TRCENA __BIT(24)
 
 
 /* Nested vectored interupt controller */
 
-#define NVIC_BASE                       _BASE(0xe000e000)
 #define NVIC_ISER                       _ARR(unsigned, 0xe000e100)
 #define NVIC_ICER                       _ARR(unsigned, 0xe000e180)
 #define NVIC_ISPR                       _ARR(unsigned, 0xe000e200)
@@ -164,7 +165,6 @@ typedef struct {
 
 #define SYSTICK_CLOCK 64000000
 
-#define SYSTICK_BASE                    _BASE(0xe000e000)
 #define SYSTICK_CSR                     _REG(unsigned, 0xe000e010)
 #define   SYSTICK_CSR_COUNTFLAG __BIT(16)
 #define   SYSTICK_CSR_CLKSOURCE __FIELD(2, 1)
@@ -182,7 +182,6 @@ typedef struct {
 
 /* Data watchpoint and trace */
 
-#define DWT_BASE                        _BASE(0xe0001000)
 #define DWT_CTRL                        _REG(unsigned, 0xe0001000)
 #define   DWT_CTRL_CYCCNTENA __BIT(0)
 #define DWT_CYCCNT                      _REG(unsigned, 0xe0001004)
@@ -190,7 +189,6 @@ typedef struct {
 
 /* Clock control */
 
-#define CLOCK_BASE                      _BASE(0x40000000)
 #define CLOCK_HFCLKSTART                _REG(unsigned, 0x40000000)
 #define CLOCK_LFCLKSTART                _REG(unsigned, 0x40000008)
 #define CLOCK_HFCLKSTARTED              _REG(unsigned, 0x40000100)
@@ -203,13 +201,11 @@ typedef struct {
 
 /* Memory protection unit */
 
-#define MPU_BASE                        _BASE(0x40000000)
 #define MPU_DISABLEINDEBUG              _REG(unsigned, 0x40000608)
 
 
 /* Factory information */
 
-#define FICR_BASE                       _BASE(0x10000000)
 #define FICR_DEVICEID                   _ARR(unsigned, 0x10000060)
 #define FICR_DEVICEADDR                 _ARR(unsigned, 0x100000a4)
 #define FICR_OVERRIDEEN                 _REG(unsigned, 0x100000a0)
@@ -222,7 +218,6 @@ typedef struct {
 /* Interrupts */
 #define POWER_INT_POFWARN 2
 
-#define POWER_BASE                      _BASE(0x40000000)
 /* Tasks */
 #define POWER_CONSTLAT                  _REG(unsigned, 0x40000078)
 #define POWER_LOWPWR                    _REG(unsigned, 0x4000007c)
@@ -259,7 +254,6 @@ typedef struct {
 /* Interrupts */
 #define WDT_INT_TIMEOUT 0
 
-#define WDT_BASE                        _BASE(0x40010000)
 /* Tasks */
 #define WDT_START                       _REG(unsigned, 0x40010000)
 /* Events */
@@ -281,7 +275,6 @@ typedef struct {
 
 /* Non-Volatile Memory Controller */
 
-#define NVMC_BASE                       _BASE(0x4001e000)
 #define NVMC_READY                      _REG(unsigned, 0x4001e400)
 #define NVMC_CONFIG                     _REG(unsigned, 0x4001e504)
 #define   NVMC_CONFIG_WEN __BIT(0)
@@ -293,7 +286,6 @@ typedef struct {
 
 /* GPIO */
 
-#define GPIO0_BASE                      _BASE(0x50000500)
 /* Registers */
 #define GPIO0_OUT                       _REG(unsigned, 0x50000504)
 #define GPIO0_OUTSET                    _REG(unsigned, 0x50000508)
@@ -327,7 +319,6 @@ typedef struct {
 #define     GPIO_SENSE_High 2
 #define     GPIO_SENSE_Low 3
 
-#define GPIO1_BASE                      _BASE(0x50000800)
 #define GPIO1_OUT                       _REG(unsigned, 0x50000804)
 #define GPIO1_OUTSET                    _REG(unsigned, 0x50000808)
 #define GPIO1_OUTCLR                    _REG(unsigned, 0x5000080c)
@@ -347,7 +338,6 @@ typedef struct {
 #define GPIOTE_INT_IN3 3
 #define GPIOTE_INT_PORT 31
 
-#define GPIOTE_BASE                     _BASE(0x40006000)
 /* Tasks */
 #define GPIOTE_OUT                      _ARR(unsigned, 0x40006000)
 #define GPIOTE_SET                      _ARR(unsigned, 0x40006030)
@@ -376,7 +366,6 @@ typedef struct { unsigned EN, DIS; } ppi_chg;
 typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 
 
-#define PPI_BASE                        _BASE(0x4001f000)
 /* Tasks */
 #define PPI_CHG                         _ARR(ppi_chg, 0x4001f000)
 /* Registers */
@@ -394,7 +383,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 #define RADIO_INT_END 3
 #define RADIO_INT_DISABLED 4
 
-#define RADIO_BASE                      _BASE(0x40001000)
 /* Tasks */
 #define RADIO_TXEN                      _REG(unsigned, 0x40001000)
 #define RADIO_RXEN                      _REG(unsigned, 0x40001004)
@@ -486,7 +474,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 #define TIMER_COMPARE4_STOP 12
 #define TIMER_COMPARE5_STOP 13
 
-#define TIMER0_BASE                     _BASE(0x40008000)
 /* Tasks */
 #define TIMER0_START                    _REG(unsigned, 0x40008000)
 #define TIMER0_STOP                     _REG(unsigned, 0x40008004)
@@ -511,7 +498,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 #define TIMER0_PRESCALER                _REG(unsigned, 0x40008510)
 #define TIMER0_CC                       _ARR(unsigned, 0x40008540)
 
-#define TIMER1_BASE                     _BASE(0x40009000)
 #define TIMER1_START                    _REG(unsigned, 0x40009000)
 #define TIMER1_STOP                     _REG(unsigned, 0x40009004)
 #define TIMER1_COUNT                    _REG(unsigned, 0x40009008)
@@ -527,7 +513,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 #define TIMER1_PRESCALER                _REG(unsigned, 0x40009510)
 #define TIMER1_CC                       _ARR(unsigned, 0x40009540)
 
-#define TIMER2_BASE                     _BASE(0x4000a000)
 #define TIMER2_START                    _REG(unsigned, 0x4000a000)
 #define TIMER2_STOP                     _REG(unsigned, 0x4000a004)
 #define TIMER2_COUNT                    _REG(unsigned, 0x4000a008)
@@ -543,7 +528,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 #define TIMER2_PRESCALER                _REG(unsigned, 0x4000a510)
 #define TIMER2_CC                       _ARR(unsigned, 0x4000a540)
 
-#define TIMER3_BASE                     _BASE(0x4001a000)
 #define TIMER3_START                    _REG(unsigned, 0x4001a000)
 #define TIMER3_STOP                     _REG(unsigned, 0x4001a004)
 #define TIMER3_COUNT                    _REG(unsigned, 0x4001a008)
@@ -559,7 +543,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 #define TIMER3_PRESCALER                _REG(unsigned, 0x4001a510)
 #define TIMER3_CC                       _ARR(unsigned, 0x4001a540)
 
-#define TIMER4_BASE                     _BASE(0x4001b000)
 #define TIMER4_START                    _REG(unsigned, 0x4001b000)
 #define TIMER4_STOP                     _REG(unsigned, 0x4001b004)
 #define TIMER4_COUNT                    _REG(unsigned, 0x4001b008)
@@ -581,7 +564,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 /* Interrupts */
 #define RNG_INT_VALRDY 0
 
-#define RNG_BASE                        _BASE(0x4000d000)
 /* Tasks */
 #define RNG_START                       _REG(unsigned, 0x4000d000)
 #define RNG_STOP                        _REG(unsigned, 0x4000d004)
@@ -602,7 +584,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 /* Interrupts */
 #define TEMP_INT_DATARDY 0
 
-#define TEMP_BASE                       _BASE(0x4000c000)
 /* Tasks */
 #define TEMP_START                      _REG(unsigned, 0x4000c000)
 #define TEMP_STOP                       _REG(unsigned, 0x4000c004)
@@ -631,7 +612,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 #define I2C_BB_SUSPEND 0
 #define I2C_BB_STOP 1
 
-#define I2C0_BASE                       _BASE(0x40003000)
 /* Tasks */
 #define I2C0_STARTRX                    _REG(unsigned, 0x40003000)
 #define I2C0_STARTTX                    _REG(unsigned, 0x40003008)
@@ -667,7 +647,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 #define I2C0_ADDRESS                    _REG(unsigned, 0x40003588)
 #define I2C0_POWER                      _REG(unsigned, 0x40003ffc)
 
-#define I2C1_BASE                       _BASE(0x40004000)
 #define I2C1_STARTRX                    _REG(unsigned, 0x40004000)
 #define I2C1_STARTTX                    _REG(unsigned, 0x40004008)
 #define I2C1_STOP                       _REG(unsigned, 0x40004014)
@@ -700,7 +679,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 #define UART_INT_RXDRDY 2
 #define UART_INT_TXDRDY 7
 
-#define UART_BASE                       _BASE(0x40002000)
 /* Tasks */
 #define UART_STARTRX                    _REG(unsigned, 0x40002000)
 #define UART_STARTTX                    _REG(unsigned, 0x40002008)
@@ -762,7 +740,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 #define UARTE_ENDRX_STARTRX 5
 #define UARTE_ENDRX_STOPRX 6
 
-#define UARTE0_BASE                     _BASE(0x40002000)
 /* Tasks */
 #define UARTE0_STARTRX                  _REG(unsigned, 0x40002000)
 #define UARTE0_STOPRX                   _REG(unsigned, 0x40002004)
@@ -831,7 +808,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 #define     UARTE_PARITYTYPE_Even 0
 #define     UARTE_PARITYTYPE_Odd 1
 
-#define UARTE1_BASE                     _BASE(0x40028000)
 #define UARTE1_STARTRX                  _REG(unsigned, 0x40028000)
 #define UARTE1_STOPRX                   _REG(unsigned, 0x40028004)
 #define UARTE1_STARTTX                  _REG(unsigned, 0x40028008)
@@ -881,7 +857,6 @@ typedef struct {
 #define ADC_INT_CALDONE 4
 #define ADC_INT_STOPPED 5
 
-#define ADC_BASE                        _BASE(0x40007000)
 /* Tasks */
 #define ADC_START                       _REG(unsigned, 0x40007000)
 #define ADC_SAMPLE                      _REG(unsigned, 0x40007004)
@@ -974,7 +949,6 @@ typedef struct {
 #define RISING PWM_POLARITY_RisingEdge
 #define FALLING PWM_POLARITY_FallingEdge
 
-#define PWM0_BASE                       _BASE(0x4001c000)
 /* Tasks */
 #define PWM0_STOP                       _REG(unsigned, 0x4001c004)
 #define PWM0_SEQSTART                   _ARR(unsigned, 0x4001c008)
@@ -1013,7 +987,6 @@ typedef struct {
 #define     PWM_POLARITY_FallingEdge 1
 #define PWM0_PSEL                       _ARR(unsigned, 0x4001c560)
 
-#define PWM1_BASE                       _BASE(0x40021000)
 #define PWM1_STOP                       _REG(unsigned, 0x40021004)
 #define PWM1_SEQSTART                   _ARR(unsigned, 0x40021008)
 #define PWM1_NEXTSTEP                   _REG(unsigned, 0x40021010)
@@ -1035,7 +1008,6 @@ typedef struct {
 #define PWM1_SEQ                        _ARR(pwm_sequence, 0x40021520)
 #define PWM1_PSEL                       _ARR(unsigned, 0x40021560)
 
-#define PWM2_BASE                       _BASE(0x40022000)
 #define PWM2_STOP                       _REG(unsigned, 0x40022004)
 #define PWM2_SEQSTART                   _ARR(unsigned, 0x40022008)
 #define PWM2_NEXTSTEP                   _REG(unsigned, 0x40022010)
@@ -1057,7 +1029,6 @@ typedef struct {
 #define PWM2_SEQ                        _ARR(pwm_sequence, 0x40022520)
 #define PWM2_PSEL                       _ARR(unsigned, 0x40022560)
 
-#define PWM3_BASE                       _BASE(0x4002d000)
 #define PWM3_STOP                       _REG(unsigned, 0x4002d004)
 #define PWM3_SEQSTART                   _ARR(unsigned, 0x4002d008)
 #define PWM3_NEXTSTEP                   _REG(unsigned, 0x4002d010)
@@ -1078,6 +1049,199 @@ typedef struct {
 #define PWM3_LOOP                       _REG(unsigned, 0x4002d514)
 #define PWM3_SEQ                        _ARR(pwm_sequence, 0x4002d520)
 #define PWM3_PSEL                       _ARR(unsigned, 0x4002d560)
+
+
+/* Device arrays */
+
+/* To permit uniform access to multiple instances of a device, some
+devices are described here in an alternative format based on an
+array of pointers to structures.  Then driver code can refer to instances
+by number, and contain references like I2C[i]->TXD for a register that
+might be I2C0_TXD or I2C1_TXD. */
+
+struct _gpio {
+    _PADDING(4);
+    unsigned OUT;                       // 0x004
+    unsigned OUTSET;                    // 0x008
+    unsigned OUTCLR;                    // 0x00c
+    unsigned IN;                        // 0x010
+    unsigned DIR;                       // 0x014
+    unsigned DIRSET;                    // 0x018
+    unsigned DIRCLR;                    // 0x01c
+    _PADDING(480);
+    unsigned PINCNF[32];                // 0x200
+};
+
+#define GPIO0 ((struct _gpio *) 0x50000500)
+#define GPIO1 ((struct _gpio *) 0x50000800)
+extern volatile struct _gpio * const GPIO[];
+
+struct _timer {
+    unsigned START;                     // 0x000
+    unsigned STOP;                      // 0x004
+    unsigned COUNT;                     // 0x008
+    unsigned CLEAR;                     // 0x00c
+    unsigned SHUTDOWN;                  // 0x010
+    _PADDING(44);
+    unsigned CAPTURE[6];                // 0x040
+    _PADDING(232);
+    unsigned COMPARE[6];                // 0x140
+    _PADDING(168);
+    unsigned SHORTS;                    // 0x200
+    _PADDING(256);
+    unsigned INTENSET;                  // 0x304
+    unsigned INTENCLR;                  // 0x308
+    _PADDING(504);
+    unsigned MODE;                      // 0x504
+    unsigned BITMODE;                   // 0x508
+    _PADDING(4);
+    unsigned PRESCALER;                 // 0x510
+    _PADDING(44);
+    unsigned CC[6];                     // 0x540
+};
+
+#define TIMER0 ((struct _timer *) 0x40008000)
+#define TIMER1 ((struct _timer *) 0x40009000)
+#define TIMER2 ((struct _timer *) 0x4000a000)
+#define TIMER3 ((struct _timer *) 0x4001a000)
+#define TIMER4 ((struct _timer *) 0x4001b000)
+extern volatile struct _timer * const TIMER[];
+
+struct _i2c {
+    unsigned STARTRX;                   // 0x000
+    _PADDING(4);
+    unsigned STARTTX;                   // 0x008
+    _PADDING(8);
+    unsigned STOP;                      // 0x014
+    _PADDING(4);
+    unsigned SUSPEND;                   // 0x01c
+    unsigned RESUME;                    // 0x020
+    _PADDING(224);
+    unsigned STOPPED;                   // 0x104
+    unsigned RXDREADY;                  // 0x108
+    _PADDING(16);
+    unsigned TXDSENT;                   // 0x11c
+    _PADDING(4);
+    unsigned ERROR;                     // 0x124
+    _PADDING(16);
+    unsigned BB;                        // 0x138
+    _PADDING(12);
+    unsigned SUSPENDED;                 // 0x148
+    _PADDING(180);
+    unsigned SHORTS;                    // 0x200
+    _PADDING(252);
+    unsigned INTEN;                     // 0x300
+    unsigned INTENSET;                  // 0x304
+    unsigned INTENCLR;                  // 0x308
+    _PADDING(440);
+    unsigned ERRORSRC;                  // 0x4c4
+    _PADDING(56);
+    unsigned ENABLE;                    // 0x500
+    _PADDING(4);
+    unsigned PSELSCL;                   // 0x508
+    unsigned PSELSDA;                   // 0x50c
+    _PADDING(8);
+    unsigned RXD;                       // 0x518
+    unsigned TXD;                       // 0x51c
+    _PADDING(4);
+    unsigned FREQUENCY;                 // 0x524
+    _PADDING(96);
+    unsigned ADDRESS;                   // 0x588
+    _PADDING(2672);
+    unsigned POWER;                     // 0xffc
+};
+
+#define I2C0 ((struct _i2c *) 0x40003000)
+#define I2C1 ((struct _i2c *) 0x40004000)
+extern volatile struct _i2c * const I2C[];
+
+struct _uarte {
+    unsigned STARTRX;                   // 0x000
+    unsigned STOPRX;                    // 0x004
+    unsigned STARTTX;                   // 0x008
+    unsigned STOPTX;                    // 0x00c
+    _PADDING(28);
+    unsigned FLUSHRX;                   // 0x02c
+    _PADDING(208);
+    unsigned CTS;                       // 0x100
+    unsigned NTCS;                      // 0x104
+    unsigned RXDRDY;                    // 0x108
+    _PADDING(4);
+    unsigned ENDRX;                     // 0x110
+    _PADDING(8);
+    unsigned TXDRDY;                    // 0x11c
+    unsigned ENDTX;                     // 0x120
+    unsigned ERROR;                     // 0x124
+    _PADDING(28);
+    unsigned RXTO;                      // 0x144
+    _PADDING(4);
+    unsigned RXSTARTED;                 // 0x14c
+    unsigned TXSTARTED;                 // 0x150
+    _PADDING(4);
+    unsigned TXSTOPPED;                 // 0x158
+    _PADDING(164);
+    unsigned SHORTS;                    // 0x200
+    _PADDING(252);
+    unsigned INTEN;                     // 0x300
+    unsigned INTENSET;                  // 0x304
+    unsigned INTENCLR;                  // 0x308
+    _PADDING(372);
+    unsigned ERRORSRC;                  // 0x480
+    _PADDING(124);
+    unsigned ENABLE;                    // 0x500
+    _PADDING(4);
+    unsigned PSELRTS;                   // 0x508
+    unsigned PSELTXD;                   // 0x50c
+    unsigned PSELCTS;                   // 0x510
+    unsigned PSELRXD;                   // 0x514
+    _PADDING(12);
+    unsigned BAUDRATE;                  // 0x524
+    _PADDING(12);
+    dma_param RXD;                      // 0x534
+    _PADDING(4);
+    dma_param TXD;                      // 0x544
+    _PADDING(28);
+    unsigned CONFIG;                    // 0x56c
+};
+
+#define UARTE0 ((struct _uarte *) 0x40002000)
+#define UARTE1 ((struct _uarte *) 0x40028000)
+extern volatile struct _uarte * const UARTE[];
+
+struct _pwm {
+    _PADDING(4);
+    unsigned STOP;                      // 0x004
+    unsigned SEQSTART[2];               // 0x008
+    unsigned NEXTSTEP;                  // 0x010
+    _PADDING(240);
+    unsigned STOPPED;                   // 0x104
+    unsigned SEQSTARTED[2];             // 0x108
+    unsigned SEQEND[2];                 // 0x110
+    unsigned PWMPERIODEND;              // 0x118
+    unsigned LOOPSDONE;                 // 0x11c
+    _PADDING(224);
+    unsigned SHORTS;                    // 0x200
+    _PADDING(252);
+    unsigned INTEN;                     // 0x300
+    unsigned INTENSET;                  // 0x304
+    unsigned INTENCLR;                  // 0x308
+    _PADDING(500);
+    unsigned ENABLE;                    // 0x500
+    unsigned MODE;                      // 0x504
+    unsigned COUNTERTOP;                // 0x508
+    unsigned PRESCALER;                 // 0x50c
+    unsigned DECODER;                   // 0x510
+    unsigned LOOP;                      // 0x514
+    _PADDING(8);
+    pwm_sequence SEQ[2];                // 0x520
+    unsigned PSEL[4];                   // 0x560
+};
+
+#define PWM0 ((struct _pwm *) 0x4001c000)
+#define PWM1 ((struct _pwm *) 0x40021000)
+#define PWM2 ((struct _pwm *) 0x40022000)
+#define PWM3 ((struct _pwm *) 0x4002d000)
+extern volatile struct _pwm * const PWM[];
 
 
 /* NVIC stuff */
@@ -1106,51 +1270,20 @@ void delay_loop(unsigned usec);
 
 /* GPIO convenience */
 
-#ifndef INLINE
-#define INLINE inline
-#endif
-
-/* Some C language tricks are needed for us to refer to the two GPIO
-   ports uniformly. */
-
-extern unsigned volatile * const gpio_base[2];
-
-#define _GPIO_REG(port, reg) \
-    (* (gpio_base[port] + (&GPIO0_##reg - GPIO0_BASE)))
-
-#define _GPIO_PINCNF(pin) \
-    ((gpio_base[PORT(pin)] + (GPIO0_PINCNF - GPIO0_BASE))[PIN(pin)])
-
 /* gpio_dir -- set GPIO direction */
-INLINE void gpio_dir(unsigned pin, unsigned dir) {
-    if (dir)
-        _GPIO_REG(PORT(pin), DIRSET) = BIT(PIN(pin));
-    else
-        _GPIO_REG(PORT(pin), DIRCLR) = BIT(PIN(pin));
-}
+void gpio_dir(unsigned pin, unsigned dir);
 
 /* gpio_connect -- connect pin for input */
-INLINE void gpio_connect(unsigned pin) {
-    SET_FIELD(_GPIO_PINCNF(pin), GPIO_PINCNF_INPUT, GPIO_INPUT_Connect);
-}
+void gpio_connect(unsigned pin);
 
 /* gpio_drive -- set GPIO drive strength */
-INLINE void gpio_drive(unsigned pin, unsigned mode) {
-    SET_FIELD(_GPIO_PINCNF(pin), GPIO_PINCNF_DRIVE, mode);
-}
+void gpio_drive(unsigned pin, unsigned mode);
 
 /* gpio_out -- set GPIO output value */
-INLINE void gpio_out(unsigned pin, unsigned value) {
-    if (value)
-        _GPIO_REG(PORT(pin), OUTSET) = BIT(PIN(pin));
-    else
-        _GPIO_REG(PORT(pin), OUTCLR) = BIT(PIN(pin));
-}
+void gpio_out(unsigned pin, unsigned value);
 
 /* gpio_in -- get GPIO input bit */
-INLINE unsigned gpio_in(unsigned pin) {
-    return GET_BIT(_GPIO_REG(PORT(pin), IN), PIN(pin));
-}
+unsigned gpio_in(unsigned pin);
 
 
 /* Image constants */

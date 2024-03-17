@@ -40,7 +40,7 @@ microbian.a: $(MICROBIAN)
 %.o: %.s
 	$(AS) $(CPU) $< -o $@
 
-%.h: %.f
+%/hardware.h: %/hardware.f hwdesc
 	./hwdesc $< >$@
 
 clean: force
@@ -50,4 +50,5 @@ force:
 
 ###
 
-$(MICROBIAN) startup.o: microbian.h lib.h $(BOARD)/hardware.h
+$(MICROBIAN) startup.o: \
+	microbian.h lib.h $(BOARD)/hardware.h

@@ -1,7 +1,6 @@
-/* common/startup.c */
+/* ubit-v1/startup.c */
 /* Copyright (c) 2018 J. M. Spivey */
 
-#define INLINE                  /* Create actual copies of inline functions */
 #include "hardware.h"
 
 /* init -- main program, creates application processes */
@@ -114,6 +113,17 @@ void clear_pending(int irq)
 {
     NVIC_ICPR[0] = BIT(irq);
 }
+
+
+/* DEVICE TABLES */
+
+volatile struct _timer * const TIMER[] = {
+    TIMER0, TIMER1, TIMER2
+};
+
+volatile struct _i2c * const I2C[] = {
+    I2C0
+};
 
 
 /*  INTERRUPT VECTORS */

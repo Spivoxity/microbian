@@ -117,11 +117,16 @@ argument to be a macro that expands the a 'position, width' pair. */
 
 
 /* Device registers */
-#define _BASE(addr) ((unsigned volatile *) addr)
 #define _REG(ty, addr) (* (ty volatile *) addr)
 #define _ARR(ty, addr) ((ty volatile *) addr)
 
+#define _PADDING(n) unsigned char _PAD(__LINE__)[n]
+#define _PAD(lnum) _JOIN(_pad, lnum)
+#define _JOIN(x, y) x##y
+
+
 /* Common layout for DMA parameters */
+SIZE dma_param 12
 typedef struct {
     void *PTR;
     unsigned MAXCNT;
@@ -314,7 +319,7 @@ INSTANCE nvmc NVMC @ 0x4001e000;
 
 
 /* GPIO */
-DEVICE gpio {
+DEVICE* gpio {
 /* Registers */
     REGISTER unsigned OUT @ 0x004;
     REGISTER unsigned OUTSET @ 0x008;
@@ -486,7 +491,7 @@ INSTANCE radio RADIO @ 0x40001000;
 
 /* TIMERS: Timers are all 8/16/24/32 bit; timers 3 and 4 have 6 CC registers
    instead of 4. */
-DEVICE timer {
+DEVICE* timer {
 /* Tasks */
     REGISTER unsigned START @ 0x000;
     REGISTER unsigned STOP @ 0x004;
@@ -592,7 +597,7 @@ INSTANCE temp TEMP @ 0x4000c000;
 #define I2C_EXTERNAL 1
 #define N_I2CS 2
 
-DEVICE i2c {
+DEVICE* i2c {
 /* Tasks */
     REGISTER unsigned STARTRX @ 0x000;
     REGISTER unsigned STARTTX @ 0x008;
@@ -696,7 +701,7 @@ INSTANCE uart UART @ 0x40002000;
 
 
 /* UARTE -- UART with EasyDMA */
-DEVICE uarte {
+DEVICE* uarte {
 /* Tasks */
     REGISTER unsigned STARTRX @ 0x000;
     REGISTER unsigned STOPRX @ 0x004;
@@ -869,6 +874,7 @@ INSTANCE adc ADC @ 0x40007000;
 
 
 /* PWM */
+SIZE pwm_sequence 32
 typedef struct {
     void *PTR;
     unsigned CNT;
@@ -877,7 +883,7 @@ typedef struct {
     unsigned char filler[16];
 } pwm_sequence;
 
-DEVICE pwm {
+DEVICE* pwm {
 /* Tasks */
     REGISTER unsigned STOP @ 0x004;
     REGISTER unsigned SEQSTART[2] @ 0x008;
@@ -948,6 +954,16 @@ INSTANCE pwm PWM2 @ 0x40022000;
 INSTANCE pwm PWM3 @ 0x4002d000;
 
 
+/* Device arrays */
+
+/* To permit uniform access to multiple instances of a device, some
+devices are described here in an alternative format based on an
+array of pointers to structures.  Then driver code can refer to instances
+by number, and contain references like I2C[i]->TXD for a register that
+might be I2C0_TXD or I2C1_TXD. */
+DEVARRAYS
+
+
 /* NVIC stuff */
 
 /* irq_priority -- set priority of an IRQ from 0 (highest) to 255 */
@@ -974,51 +990,20 @@ void delay_loop(unsigned usec);
 
 /* GPIO convenience */
 
-#ifndef INLINE
-#define INLINE inline
-#endif
-
-/* Some C language tricks are needed for us to refer to the two GPIO
-   ports uniformly. */
-
-extern unsigned volatile * const gpio_base[2];
-
-#define _GPIO_REG(port, reg) \
-    (* (gpio_base[port] + (&GPIO0_##reg - GPIO0_BASE)))
-
-#define _GPIO_PINCNF(pin) \
-    ((gpio_base[PORT(pin)] + (GPIO0_PINCNF - GPIO0_BASE))[PIN(pin)])
-
 /* gpio_dir -- set GPIO direction */
-INLINE void gpio_dir(unsigned pin, unsigned dir) {
-    if (dir)
-        _GPIO_REG(PORT(pin), DIRSET) = BIT(PIN(pin));
-    else
-        _GPIO_REG(PORT(pin), DIRCLR) = BIT(PIN(pin));
-}
+void gpio_dir(unsigned pin, unsigned dir);
 
 /* gpio_connect -- connect pin for input */
-INLINE void gpio_connect(unsigned pin) {
-    SET_FIELD(_GPIO_PINCNF(pin), GPIO_PINCNF_INPUT, GPIO_INPUT_Connect);
-}
+void gpio_connect(unsigned pin);
 
 /* gpio_drive -- set GPIO drive strength */
-INLINE void gpio_drive(unsigned pin, unsigned mode) {
-    SET_FIELD(_GPIO_PINCNF(pin), GPIO_PINCNF_DRIVE, mode);
-}
+void gpio_drive(unsigned pin, unsigned mode);
 
 /* gpio_out -- set GPIO output value */
-INLINE void gpio_out(unsigned pin, unsigned value) {
-    if (value)
-        _GPIO_REG(PORT(pin), OUTSET) = BIT(PIN(pin));
-    else
-        _GPIO_REG(PORT(pin), OUTCLR) = BIT(PIN(pin));
-}
+void gpio_out(unsigned pin, unsigned value);
 
 /* gpio_in -- get GPIO input bit */
-INLINE unsigned gpio_in(unsigned pin) {
-    return GET_BIT(_GPIO_REG(PORT(pin), IN), PIN(pin));
-}
+unsigned gpio_in(unsigned pin);
 
 
 /* Image constants */

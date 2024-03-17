@@ -2,10 +2,11 @@
 
 set status 0
 
-proc define-base {inst base} {
-    puts [format "#define %-31s _BASE(0x%x)" "${inst}_BASE" $base]
+proc gen {line} {
+    puts $line
 }
 
+# define-reg -- output register definition
 proc define-reg {inst base class reg} {
     global desc address
 
@@ -22,91 +23,177 @@ proc define-reg {inst base class reg} {
         set val "_REG($type$star, $addr)"
     }
 
-    puts [format "#define %-31s %s" "${inst}_${reg}" $val]
+    gen [format "#define %-31s %s" "${inst}_${reg}" $val]
 }
 
+# put-defines -- output #defines for a specific register
 proc put-defines {class reg} {
     global defines
 
     if {[info exists defines($class,$reg)]} {
         foreach line $defines($class,$reg) {
-            puts $line
+            gen $line
         }
         unset defines($class,$reg)
     }
 }
 
+# process -- read input, generate hardware.h
 proc process {fd} {
-    global defines desc address
+    global defines desc address classes instances base devregs size
 
     set indevice 0
+    set structs {}
 
     while {[gets $fd line] >= 0} {
-        if {[regexp {^DEVICE} $line]} {
-            if {! [regexp {^DEVICE (.*) \{} $line _ class]} {
-                puts stderr "Bad DEVICE syntax: $line"
-                set status 1
-                continue
+        regexp {^[ \t]*([A-Z]*)} $line _ key
+        switch $key {
+            DEVICE {
+                if {! [regexp {^DEVICE(\*?) (.*) \{} $line _ star class]} {
+                    puts stderr "Bad DEVICE syntax: $line"
+                    set status 1
+                    continue
+                }
+
+                if {$star eq "*"} {lappend structs $class}
+                set devregs($class) {}
+                set instances($class) {}
+                set indevice 1
+                set section top
             }
 
-            set indevice 1
-            set section top
-
-        } elseif {[regexp {^[ \t]*REGISTER} $line]} {
-            if {! [regexp {^([ \t]*)REGISTER ([a-z_]*) (\*?)([A-Za-z0-9_]*)(\[[0-9]*\])? *@ *(0x[0-9a-f]*);} \
+            REGISTER {
+                if {! [regexp {^([ \t]*)REGISTER ([a-z_]*) (\*?)([A-Za-z0-9_]*)(\[[0-9]*\])? *@ *(0x[0-9a-f]*);} \
                        $line _ indent type star name bounds addr]} {
-                puts stderr "Bad REGISTER syntax: $line"
-                set status 1
-                continue
+                    puts stderr "Bad REGISTER syntax: $line"
+                    set status 1
+                    continue
+                }
+
+                if {! $indevice} {
+                    puts stderr "REGISTER outside DEVICE block: $line"
+                    set status 1
+                    continue
+                }
+
+                lappend devregs($class) $name
+                set desc($class,$name) [list $type $star $bounds]
+                set address($class,$name) $addr
+                set section $name
             }
 
-            if {! $indevice} {
-                puts stderr "REGISTER outside DEVICE block: $line"
-                set status 1
-                continue
-            }
+            INSTANCE {
+                if {! [regexp {^INSTANCE (.*) (.*)  *@ *(0x[0-9a-f]*);} \
+                           $line _ cl name addr]} {
+                    puts stderr "Bad INSTANCE syntax: $line"
+                    set status 1
+                    continue
+                }
 
-            lappend devregs($class) $name
-            set desc($class,$name) [list $type $star $bounds]
-            set address($class,$name) $addr
-            set section $name
-
-        } elseif {$indevice && [regexp "\}" $line]} {
-
-            set indevice 0
-
-        } elseif {$indevice} {
-
-            lappend defines($class,$section) $line
-
-        } elseif {[regexp {^INSTANCE} $line]} {
-            if {! [regexp {^INSTANCE (.*) (.*)  *@ *(0x[0-9a-f]*);} \
-                       $line _ cl name addr]} {
-                puts stderr "Bad INSTANCE syntax: $line"
-                set status 1
-                continue
-            }
-
-            define-base $name $addr
-            put-defines $cl top
-            if {[info exists devregs($cl)]} {
+                put-defines $cl top
                 foreach reg $devregs($cl) {
                     define-reg $name $addr $cl $reg
                     put-defines $cl $reg
                 }
+
+                lappend instances($cl) $name
+                set base($name) $addr
             }
 
-        } else {
+            SIZE {
+                if {! [regexp {^SIZE +([^ ]*) +([0-9]+)} $line _ type sz]} {
+                    puts stderr "Bad SIZE syntax: $line"
+                    set status 1
+                    continue
+                }
 
-            puts $line
+                set size($type) $sz
+            }
 
+            DEVARRAYS {
+                foreach class $structs {
+                    dev-array $class
+                }
+            }
+
+            default {
+                if {$indevice && [regexp "\}" $line]} {
+                    set indevice 0
+                } elseif {$indevice} {
+                    lappend defines($class,$section) $line
+                } else {
+                    gen $line
+                }
+            }
         }
     }
 }
 
-set fname [lindex $argv 0]
-set fd [open $fname r]
+set size(unsigned) 4
+
+proc size {type star bounds} {
+    global size
+
+    if {$star ne ""} {
+        set s 4
+    } else {
+        set s $size($type)
+    }
+
+    if {$bounds ne ""} {
+        regexp {\[(.*)\]} $bounds _ n
+        set s [expr {$s * $n}]
+    }
+
+    return $s
+}
+
+proc decl-reg {class reg} {
+    global desc address offset
+
+    set d $desc($class,$reg)
+    set type [lindex $d 0]
+    set star [lindex $d 1]
+    set bounds [lindex $d 2]
+    set addr $address($class,$reg)
+
+    set padding [expr {$addr - $offset}]
+    if {$padding > 0} {
+        gen "    _PADDING($padding);"
+    }
+
+    if {$bounds ne ""} {
+        set decl "$star$reg$bounds"
+    } else {
+        set decl "$star$reg"
+    }
+
+    gen [format "    %-36s// %s" "$type $decl;" $addr]
+
+    set offset [expr {$addr + [size $type $star $bounds]}]
+}
+
+proc dev-array {class} {
+    global devregs offset instances base
+
+    set offset 0
+    gen ""
+    gen "struct _$class {"
+    foreach reg $devregs($class) {
+        decl-reg $class $reg
+    }
+    gen "};"
+
+    gen ""
+    foreach inst $instances($class) {
+        gen "#define $inst ((struct _$class *) $base($inst))"
+    }
+
+    gen "extern volatile struct _$class * const [string toupper $class]\[\];"
+}
+
+set infile [lindex $argv 0]
+set fd [open $infile r]
 process $fd
-close $fd
 
 exit $status

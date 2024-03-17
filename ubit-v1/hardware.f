@@ -7,10 +7,9 @@
 /* Hardware register definitions for nRF51822 */
 
 #define BIT(i) (1 << (i))
-#define GET_BIT(reg, n) (((reg) >> (n)) & 0x1)
 #define SET_BIT(reg, n) reg |= BIT(n)
+#define GET_BIT(reg, n) (((reg) >> (n)) & 0x1)
 #define CLR_BIT(reg, n) reg &= ~BIT(n)
-
 #define GET_BYTE(reg, n) (((reg) >> (8*(n))) & 0xff)
 #define SET_BYTE(reg, n, v) \
     reg = (reg & ~(0xff << 8*n)) | ((v & 0xff) << 8*n)
@@ -94,9 +93,12 @@ argument to be a macro that expands the a 'position, width' pair. */
 
 
 /* Device registers */
-#define _BASE(addr) ((unsigned volatile *) addr)
 #define _REG(ty, addr) (* (ty volatile *) addr)
 #define _ARR(ty, addr) ((ty volatile *) addr)
+
+#define _PADDING(n) unsigned char _PAD(__LINE__)[n]
+#define _PAD(lnum) _JOIN(_pad, lnum)
+#define _JOIN(x, y) x##y
 
 
 /* System contol block */
@@ -412,7 +414,7 @@ INSTANCE radio RADIO @ 0x40001000;
 
 
 /* TIMERS: Timer 0 is 8/16/24/32 bit, Timers 1 and 2 are 8/16 bit. */
-DEVICE timer {
+DEVICE* timer {
 /* Tasks */
     REGISTER unsigned START @ 0x000;
     REGISTER unsigned STOP @ 0x004;
@@ -511,7 +513,7 @@ INSTANCE temp TEMP @ 0x4000c000;
 #define I2C_EXTERNAL 0
 #define N_I2CS 1
 
-DEVICE i2c {
+DEVICE* i2c {
 /* Tasks */
     REGISTER unsigned STARTRX @ 0x000;
     REGISTER unsigned STARTTX @ 0x008;
@@ -558,7 +560,7 @@ DEVICE i2c {
 #define I2C_BB_SUSPEND 0
 #define I2C_BB_STOP 1
 
-INSTANCE i2c I2C @ 0x40003000;
+INSTANCE i2c I2C0 @ 0x40003000;
 
 
 /* UART */
@@ -652,6 +654,18 @@ DEVICE adc {
 #define ADC_INT_END 0
 
 INSTANCE adc ADC @ 0x40007000;
+
+
+/* Device arrays */
+
+/* To permit uniform access to multiple instances of a device, some
+devices are described here in an alternative format based on an
+array of pointers to structures.  Then driver code can refer to instances
+by number, and contain references like I2C[i]->TXD for a register that
+might be I2C0_TXD or I2C1_TXD.  The I2C interface is included in this
+scheme despite having only one instance so that the same driver can be
+used on both V1 and V2*/
+DEVARRAYS
 
 
 /* NVIC stuff */

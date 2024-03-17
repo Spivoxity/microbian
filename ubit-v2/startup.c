@@ -1,7 +1,6 @@
-/* common/startup.c */
+/* ubit-v2/startup.c */
 /* Copyright (c) 2018 J. M. Spivey */
 
-#define INLINE                  /* Create actual copies of inline functions */
 #include "hardware.h"
 
 /* init -- main program, creates application processes */
@@ -15,8 +14,8 @@ void default_start(void)
 
 void __start(void) __attribute((weak, alias("default_start")));
 
-/* The next four routines can be used in C compiler output, even
-if not mentioned in the source. */
+/* The next four routines can be used in C compiler output, even if
+not mentioned in the source. */
 
 /* memcpy -- copy n bytes from src to dest (non-overlapping) */
 void *memcpy(void *dest, const void *src, unsigned n)
@@ -59,10 +58,6 @@ int memcmp(const void *pp, const void *qq, int n)
     }
     return 0;
 }
-
-unsigned volatile * const gpio_base[2] = {
-    GPIO0_BASE, GPIO1_BASE
-};
 
 /* Addresses set by the linker */
 extern unsigned char __xram_start[], __xram_end[],
@@ -123,6 +118,65 @@ void disable_irq(int irq)
 void clear_pending(int irq)
 {
     NVIC_ICPR[irq >> 5] = BIT(irq & 0x1f);
+}
+
+
+/* DEVICE TABLES */
+
+volatile struct _gpio * const GPIO[] = {
+    GPIO0, GPIO1
+};
+
+volatile struct _timer * const TIMER[] = {
+    TIMER0, TIMER1, TIMER2, TIMER3, TIMER4
+};
+
+volatile struct _i2c * const I2C[] = {
+    I2C0, I2C1
+};
+
+volatile struct _uarte * const UARTE[] = {
+    UARTE0, UARTE1
+};
+
+volatile struct _pwm * const PWM[] = {
+    PWM0, PWM1, PWM2, PWM3
+};
+
+
+/* GPIO CONVENIENCE */
+
+/* gpio_dir -- set GPIO direction */
+void gpio_dir(unsigned pin, unsigned dir) {
+    if (dir)
+        GPIO[PORT(pin)]->DIRSET = BIT(PIN(pin));
+    else
+        GPIO[PORT(pin)]->DIRCLR = BIT(PIN(pin));
+}
+ 
+/* gpio_connect -- connect pin for input */
+void gpio_connect(unsigned pin) {
+    SET_FIELD(GPIO[PORT(pin)]->PINCNF[PIN(pin)],
+              GPIO_PINCNF_INPUT, GPIO_INPUT_Connect);
+}
+ 
+/* gpio_drive -- set GPIO drive strength */
+void gpio_drive(unsigned pin, unsigned mode) {
+    SET_FIELD(GPIO[PORT(pin)]->PINCNF[PIN(pin)],
+              GPIO_PINCNF_DRIVE, mode);
+}
+ 
+/* gpio_out -- set GPIO output value */
+void gpio_out(unsigned pin, unsigned value) {
+    if (value)
+        GPIO[PORT(pin)]->OUTSET = BIT(PIN(pin));
+    else
+        GPIO[PORT(pin)]->OUTCLR = BIT(PIN(pin));
+}
+ 
+/* gpio_in -- get GPIO input bit */
+unsigned gpio_in(unsigned pin) {
+    return GET_BIT(GPIO[PORT(pin)]->IN, PIN(pin));
 }
 
 
