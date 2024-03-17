@@ -135,6 +135,10 @@ volatile struct _i2c * const I2C[] = {
     I2C0, I2C1
 };
 
+volatile struct _spi * const SPI[] = {
+    SPI0, SPI1, SPI2
+};
+
 volatile struct _uarte * const UARTE[] = {
     UARTE0, UARTE1
 };
@@ -252,8 +256,8 @@ void systick_handler(void);
 void power_clock_handler(void);
 void radio_handler(void);
 void uart0_handler(void);
-void i2c0_handler(void);
-void i2c1_handler(void);
+void i2c_spi0_handler(void);
+void i2c_spi1_handler(void);
 void nfc_handler(void);
 void gpiote_handler(void);
 void adc_handler(void);
@@ -282,14 +286,14 @@ void pdm_handler(void);
 void mwu_handler(void);
 void pwm1_handler(void);
 void pwm2_handler(void);
-void spi0_handler(void);
+void spi2_handler(void);
 void rtc2_handler(void);
 void i2s_handler(void);
 void fpu_handler(void);
 void usbd_handler(void);
 void uart1_handler(void);
 void pwm3_handler(void);
-void spi1_handler(void);
+void spi3_handler(void);
 
 /* This vector table is placed at address 0 in the flash by directives
 in the linker script. */
@@ -316,8 +320,8 @@ void *__vectors[] __attribute((section(".vectors"))) = {
     power_clock_handler,        /*  0 */
     radio_handler,
     uart0_handler,
-    i2c0_handler,
-    i2c1_handler,               /*  4 */
+    i2c_spi0_handler,
+    i2c_spi1_handler,           /*  4 */
     nfc_handler,
     gpiote_handler,
     adc_handler,
@@ -348,7 +352,7 @@ void *__vectors[] __attribute((section(".vectors"))) = {
     mwu_handler,                /* 32 */
     pwm1_handler,
     pwm2_handler,
-    spi0_handler,
+    spi2_handler,
     rtc2_handler,               /* 36 */
     i2s_handler,
     fpu_handler,
@@ -360,7 +364,7 @@ void *__vectors[] __attribute((section(".vectors"))) = {
     0,            		/* 44 */
     pwm3_handler,
     0,
-    spi1_handler,
+    spi3_handler,
     0,            		/* 48 */
     0,
     0,

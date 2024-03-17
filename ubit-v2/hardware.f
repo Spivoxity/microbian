@@ -46,40 +46,55 @@ argument to be a macro that expands the a 'position, width' pair. */
 #define PAD0  DEVPIN(0, 2)
 #define PAD1  DEVPIN(0, 3)
 #define PAD2  DEVPIN(0, 4)
-#define USB_TX DEVPIN(0, 6)
-#define I2C0_SCL DEVPIN(0, 8)
 #define PAD9  DEVPIN(0, 9)
 #define PAD8  DEVPIN(0, 10)
 #define PAD7  DEVPIN(0, 11)
-#define   COL2 PAD7
 #define PAD12 DEVPIN(0, 12)
 #define PAD15 DEVPIN(0, 13)
 #define PAD5  DEVPIN(0, 14)
-#define   BUTTON_A PAD5
 #define ROW3 DEVPIN(0, 15)
-#define I2C0_SDA DEVPIN(0, 16)
 #define PAD13 DEVPIN(0, 17)
 #define ROW5 DEVPIN(0, 19)
 #define ROW1 DEVPIN(0, 21)
 #define ROW2 DEVPIN(0, 22)
 #define PAD11 DEVPIN(0, 23)
-#define   BUTTON_B PAD11
 #define ROW4 DEVPIN(0, 24)
 #define PAD19 DEVPIN(0, 26)
-#define   I2C1_SCL PAD19
 #define PAD4  DEVPIN(0, 28)
-#define   COL1 PAD4
 #define PAD10 DEVPIN(0, 30)
-#define   COL5 PAD10
 #define PAD3  DEVPIN(0, 31)
-#define   COL3 PAD3
 
 #define PAD20 DEVPIN(1, 0)
-#define   I2C1_SDA PAD20
 #define PAD16 DEVPIN(1, 2)
 #define PAD6  DEVPIN(1, 5)
-#define   COL4 PAD6
+
+#define COL1 PAD4
+#define COL2 PAD7
+#define COL3 PAD3
+#define COL4 PAD6
+#define COL5 PAD10
+
+#define USB_TX DEVPIN(0, 6)
 #define USB_RX DEVPIN(1, 8)
+
+#define BUTTON_A PAD5
+#define BUTTON_B PAD11
+
+#define I2C0_SDA DEVPIN(0, 16)
+#define I2C0_SCL DEVPIN(0, 8)
+#define I2C1_SCL PAD19
+#define I2C1_SDA PAD20
+
+#define SPI_SCK PAD13
+#define SPI_MISO PAD14
+#define SPI_MOSI PAD15
+
+/* Two I2C busses, one for internal chips (I2C0_SCL, I2C0_SDA),
+   another external (I2C1_SCL, I2C1_SDA); use SPI2 for SPI */
+#define N_I2C 2
+#define I2C_INTERNAL 0
+#define I2C_EXTERNAL 1
+#define SPI_CHAN 2
 
 
 /* Interrupts */
@@ -89,7 +104,9 @@ argument to be a macro that expands the a 'position, width' pair. */
 #define RADIO_IRQ   1
 #define UART0_IRQ   2
 #define I2C0_IRQ    3
+#define SPI0_IRQ    3
 #define I2C1_IRQ    4
+#define SPI1_IRQ    4
 #define GPIOTE_IRQ  6
 #define ADC_IRQ     7
 #define TIMER0_IRQ  8
@@ -104,16 +121,23 @@ argument to be a macro that expands the a 'position, width' pair. */
 #define PWM0_IRQ   28
 #define PWM1_IRQ   33
 #define PWM2_IRQ   34
-#define SPI0_IRQ   35
+#define SPI2_IRQ   35
 #define UART1_IRQ  40
 #define PWM3_IRQ   45
-#define SPI1_IRQ   47
+#define SPI3_IRQ   47
 
 #define N_INTERRUPTS 64
 
 /* For compatibility, we allow UART as a synonym for UART0 */
 #define UART_IRQ UART0_IRQ
 #define uart_handler uart0_handler
+
+/* Interrupts 3 and 4 are shared between I2C and SPI: we can
+define a handler with either name */
+#define i2c0_handler i2c_spi0_handler
+#define spi0_handler i2c_spi0_handler
+#define i2c1_handler i2c_spi1_handler
+#define spi1_handler i2c_spi1_handler
 
 
 /* Device registers */
@@ -592,11 +616,7 @@ DEVICE temp {
 INSTANCE temp TEMP @ 0x4000c000;
 
 
-/* Separate internal and external I2C buses */
-#define I2C_INTERNAL 0
-#define I2C_EXTERNAL 1
-#define N_I2CS 2
-
+/* I2C */
 DEVICE* i2c {
 /* Tasks */
     REGISTER unsigned STARTRX @ 0x000;
@@ -647,6 +667,49 @@ DEVICE* i2c {
 INSTANCE i2c I2C0 @ 0x40003000;
 
 INSTANCE i2c I2C1 @ 0x40004000;
+
+
+/* SPI */
+DEVICE* spi {
+    REGISTER unsigned READY @ 0x108;
+    REGISTER unsigned INTEN @ 0x300;
+    REGISTER unsigned INTENSET @ 0x304;
+    REGISTER unsigned INTENCLR @ 0x308;
+    REGISTER unsigned ENABLE @ 0x500;
+#define   SPI_ENABLE_Enabled 1
+#define   SPI_ENABLE_Disabled 0
+    REGISTER unsigned PSELSCK @ 0x508;
+    REGISTER unsigned PSELMOSI @ 0x50c;
+    REGISTER unsigned PSELMISO @ 0x510;
+    REGISTER unsigned RXD @ 0x518;
+    REGISTER unsigned TXD @ 0x51c;
+    REGISTER unsigned FREQUENCY @ 0x524;
+#define   SPI_FREQUENCY_125kHz 0x02000000
+#define   SPI_FREQUENCY_250kHz 0x04000000
+#define   SPI_FREQUENCY_500kHz 0x08000000
+#define   SPI_FREQUENCY_1MHz   0x10000000
+#define   SPI_FREQUENCY_2MHz   0x20000000
+#define   SPI_FREQUENCY_4MHz   0x40000000
+#define   SPI_FREQUENCY_8MHz   0x80000000
+    REGISTER unsigned CONFIG @ 0x554;
+#define   SPI_CONFIG_ORDER __FIELD(0, 1)
+#define     SPI_ORDER_MsbFirst 0
+#define     SPI_ORDER_LsbFirst 1
+#define   SPI_CONFIG_CPHASE __FIELD(1, 1)
+#define     SPI_CPHASE_Leading 0
+#define     SPI_CPHASE_Trailing 1
+#define   SPI_CONFIG_CPOLARITY __FIELD(2, 1)
+#define     SPI_CPOLARITY_ActiveHigh 0
+#define     SPI_CPOLARITY_ActiveLow 1
+}
+
+#define SPI_INT_READY 2
+
+INSTANCE spi SPI0 @ 0x40003000;
+
+INSTANCE spi SPI1 @ 0x40004000;
+
+INSTANCE spi SPI2 @ 0x40023000;
 
 
 /* UART */

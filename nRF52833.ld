@@ -29,8 +29,8 @@ SECTIONS {
         PROVIDE(power_clock_handler = default_handler);
         PROVIDE(radio_handler = default_handler);
         PROVIDE(uart0_handler = default_handler);
-        PROVIDE(i2c0_handler = default_handler);
-        PROVIDE(i2c1_handler = default_handler);
+        PROVIDE(i2c_spi0_handler = default_handler);
+        PROVIDE(i2c_spi1_handler = default_handler);
         PROVIDE(nfc_handler = default_handler);
         PROVIDE(gpiote_handler = default_handler);
         PROVIDE(adc_handler = default_handler);
@@ -59,14 +59,14 @@ SECTIONS {
         PROVIDE(mwu_handler = default_handler);
         PROVIDE(pwm1_handler = default_handler);
         PROVIDE(pwm2_handler = default_handler);
-        PROVIDE(spi0_handler = default_handler);
+        PROVIDE(spi2_handler = default_handler);
         PROVIDE(rtc2_handler = default_handler);
         PROVIDE(i2s_handler = default_handler);
         PROVIDE(fpu_handler = default_handler);
         PROVIDE(usbd_handler = default_handler);
         PROVIDE(uart1_handler = default_handler);
         PROVIDE(pwm3_handler = default_handler);
-        PROVIDE(spi1_handler = default_handler);
+        PROVIDE(spi3_handler = default_handler);
     } > FLASH
 
     .xram : AT (LOADADDR(.text) + SIZEOF(.text)) {

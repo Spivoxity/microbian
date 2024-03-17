@@ -30,8 +30,8 @@ SECTIONS {
         PROVIDE(timer2_handler = default_handler);
         PROVIDE(power_clock_handler = default_handler);
         PROVIDE(radio_handler = default_handler);
-        PROVIDE(i2c_handler = default_handler);
-        PROVIDE(spi_handler = default_handler);
+        PROVIDE(i2c_spi0_handler = default_handler);
+        PROVIDE(i2c_spi1_handler = default_handler);
         PROVIDE(gpiote_handler = default_handler);
         PROVIDE(adc_handler = default_handler);
         PROVIDE(rtc0_handler = default_handler);

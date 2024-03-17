@@ -39,7 +39,6 @@ argument to be a macro that expands the a 'position, width' pair. */
 
 /* Device pins */
 #define PAD19 0
-#define   I2C_SCL PAD19
 #define PAD2 1
 #define PAD1 2
 #define PAD0 3
@@ -55,21 +54,32 @@ argument to be a macro that expands the a 'position, width' pair. */
 #define ROW3 15
 #define PAD16 16
 #define PAD5 17
-#define   BUTTON_A PAD5
 #define PAD8 18
 #define PAD12 20
 #define PAD15 21
-#define   SPI_MOSI PAD15
 #define PAD14 22
-#define   SPI_MISO PAD14
 #define PAD13 23
-#define   SPI_SCK PAD13
+#define PAD11 26
+#define PAD20 30
+
 #define USB_TX 24
 #define USB_RX 25
-#define PAD11 26
-#define   BUTTON_B PAD11
-#define PAD20 30
-#define   I2C_SDA PAD20
+
+#define BUTTON_A PAD5
+#define BUTTON_B PAD11
+
+#define I2C_SCL PAD19
+#define I2C_SDA PAD20
+
+#define SPI_SCK PAD13
+#define SPI_MISO PAD14
+#define SPI_MOSI PAD15
+
+/* One shared I2C bus (I2C_SCL, I2C_SDA); use SPI1 for SPI */
+#define N_I2C 1
+#define I2C_INTERNAL 0
+#define I2C_EXTERNAL 0
+#define SPI_CHAN 1
 
 
 /* Interrupts */
@@ -77,8 +87,8 @@ argument to be a macro that expands the a 'position, width' pair. */
 #define PENDSV_IRQ -2
 #define RADIO_IRQ   1
 #define UART_IRQ    2
-#define I2C_IRQ     3
-#define SPI_IRQ     4
+#define I2C0_IRQ    3
+#define SPI0_IRQ    4
 #define GPIOTE_IRQ  6
 #define ADC_IRQ     7
 #define TIMER0_IRQ  8
@@ -90,6 +100,13 @@ argument to be a macro that expands the a 'position, width' pair. */
 #define RTC1_IRQ   17
 
 #define N_INTERRUPTS 32
+
+/* Interrupts 3 and 4 are shared between I2C and SPI: we can
+define a handler with either name */
+#define i2c0_handler i2c_spi0_handler
+#define spi0_handler i2c_spi0_handler
+#define i2c1_handler i2c_spi1_handler
+#define spi1_handler i2c_spi1_handler
 
 
 /* Device registers */
@@ -451,36 +468,6 @@ typedef struct { unsigned volatile *EEP, *TEP; } ppi_chan;
 #define TIMER2_PRESCALER                _REG(unsigned, 0x4000a510)
 #define TIMER2_CC                       _ARR(unsigned, 0x4000a540)
 
-struct _timer {
-    unsigned START;                     // 0x000
-    unsigned STOP;                      // 0x004
-    unsigned COUNT;                     // 0x008
-    unsigned CLEAR;                     // 0x00c
-    unsigned SHUTDOWN;                  // 0x010
-    _PADDING(44);
-    unsigned CAPTURE[4];                // 0x040
-    _PADDING(240);
-    unsigned COMPARE[4];                // 0x140
-    _PADDING(176);
-    unsigned SHORTS;                    // 0x200
-    _PADDING(256);
-    unsigned INTENSET;                  // 0x304
-    unsigned INTENCLR;                  // 0x308
-    _PADDING(504);
-    unsigned MODE;                      // 0x504
-    unsigned BITMODE;                   // 0x508
-    _PADDING(4);
-    unsigned PRESCALER;                 // 0x510
-    _PADDING(44);
-    unsigned CC[4];                     // 0x540
-};
-
-#define TIMER0 ((struct _timer *) 0x40008000)
-#define TIMER1 ((struct _timer *) 0x40009000)
-#define TIMER2 ((struct _timer *) 0x4000a000)
-
-extern volatile struct _timer * const TIMER[];
-
 
 /* Random Number Generator */
 
@@ -519,11 +506,7 @@ extern volatile struct _timer * const TIMER[];
 #define TEMP_VALUE                      _REG(unsigned, 0x4000c508)
 
 
-/* One shared I2C bus */
-#define I2C_INTERNAL 0
-#define I2C_EXTERNAL 0
-#define N_I2CS 1
-
+/* I2C */
 
 /* Interrupts */
 #define I2C_INT_STOPPED 1
@@ -570,54 +553,79 @@ extern volatile struct _timer * const TIMER[];
 #define I2C0_ADDRESS                    _REG(unsigned, 0x40003588)
 #define I2C0_POWER                      _REG(unsigned, 0x40003ffc)
 
-/* Represent I2C interface as a 1-element array to allow uniform treatment */
-struct _i2c {
-    unsigned STARTRX;                   // 0x000
-    _PADDING(4);
-    unsigned STARTTX;                   // 0x008
-    _PADDING(8);
-    unsigned STOP;                      // 0x014
-    _PADDING(4);
-    unsigned SUSPEND;                   // 0x01c
-    unsigned RESUME;                    // 0x020
-    _PADDING(224);
-    unsigned STOPPED;                   // 0x104
-    unsigned RXDREADY;                  // 0x108
-    _PADDING(16);
-    unsigned TXDSENT;                   // 0x11c
-    _PADDING(4);
-    unsigned ERROR;                     // 0x124
-    _PADDING(16);
-    unsigned BB;                        // 0x138
-    _PADDING(12);
-    unsigned SUSPENDED;                 // 0x148
-    _PADDING(180);
-    unsigned SHORTS;                    // 0x200
-    _PADDING(252);
-    unsigned INTEN;                     // 0x300
-    unsigned INTENSET;                  // 0x304
-    unsigned INTENCLR;                  // 0x308
-    _PADDING(440);
-    unsigned ERRORSRC;                  // 0x4c4
-    _PADDING(56);
-    unsigned ENABLE;                    // 0x500
-    _PADDING(4);
-    unsigned PSELSCL;                   // 0x508
-    unsigned PSELSDA;                   // 0x50c
-    _PADDING(8);
-    unsigned RXD;                       // 0x518
-    unsigned TXD;                       // 0x51c
-    _PADDING(4);
-    unsigned FREQUENCY;                 // 0x524
-    _PADDING(96);
-    unsigned ADDRESS;                   // 0x588
-    _PADDING(2672);
-    unsigned POWER;                     // 0xffc
-};
+#define I2C1_STARTRX                    _REG(unsigned, 0x40004000)
+#define I2C1_STARTTX                    _REG(unsigned, 0x40004008)
+#define I2C1_STOP                       _REG(unsigned, 0x40004014)
+#define I2C1_SUSPEND                    _REG(unsigned, 0x4000401c)
+#define I2C1_RESUME                     _REG(unsigned, 0x40004020)
+#define I2C1_STOPPED                    _REG(unsigned, 0x40004104)
+#define I2C1_RXDREADY                   _REG(unsigned, 0x40004108)
+#define I2C1_TXDSENT                    _REG(unsigned, 0x4000411c)
+#define I2C1_ERROR                      _REG(unsigned, 0x40004124)
+#define I2C1_BB                         _REG(unsigned, 0x40004138)
+#define I2C1_SUSPENDED                  _REG(unsigned, 0x40004148)
+#define I2C1_SHORTS                     _REG(unsigned, 0x40004200)
+#define I2C1_INTEN                      _REG(unsigned, 0x40004300)
+#define I2C1_INTENSET                   _REG(unsigned, 0x40004304)
+#define I2C1_INTENCLR                   _REG(unsigned, 0x40004308)
+#define I2C1_ERRORSRC                   _REG(unsigned, 0x400044c4)
+#define I2C1_ENABLE                     _REG(unsigned, 0x40004500)
+#define I2C1_PSELSCL                    _REG(unsigned, 0x40004508)
+#define I2C1_PSELSDA                    _REG(unsigned, 0x4000450c)
+#define I2C1_RXD                        _REG(unsigned, 0x40004518)
+#define I2C1_TXD                        _REG(unsigned, 0x4000451c)
+#define I2C1_FREQUENCY                  _REG(unsigned, 0x40004524)
+#define I2C1_ADDRESS                    _REG(unsigned, 0x40004588)
+#define I2C1_POWER                      _REG(unsigned, 0x40004ffc)
 
-#define I2C0 ((struct _i2c *) 0x40003000)
 
-extern volatile struct _i2c * const I2C[];
+/* SPI */
+
+#define SPI_INT_READY 2
+
+#define SPI0_READY                      _REG(unsigned, 0x40003108)
+#define SPI0_INTEN                      _REG(unsigned, 0x40003300)
+#define SPI0_INTENSET                   _REG(unsigned, 0x40003304)
+#define SPI0_INTENCLR                   _REG(unsigned, 0x40003308)
+#define SPI0_ENABLE                     _REG(unsigned, 0x40003500)
+#define   SPI_ENABLE_Enabled 1
+#define   SPI_ENABLE_Disabled 0
+#define SPI0_PSELSCK                    _REG(unsigned, 0x40003508)
+#define SPI0_PSELMOSI                   _REG(unsigned, 0x4000350c)
+#define SPI0_PSELMISO                   _REG(unsigned, 0x40003510)
+#define SPI0_RXD                        _REG(unsigned, 0x40003518)
+#define SPI0_TXD                        _REG(unsigned, 0x4000351c)
+#define SPI0_FREQUENCY                  _REG(unsigned, 0x40003524)
+#define   SPI_FREQUENCY_125kHz 0x02000000
+#define   SPI_FREQUENCY_250kHz 0x04000000
+#define   SPI_FREQUENCY_500kHz 0x08000000
+#define   SPI_FREQUENCY_1MHz   0x10000000
+#define   SPI_FREQUENCY_2MHz   0x20000000
+#define   SPI_FREQUENCY_4MHz   0x40000000
+#define   SPI_FREQUENCY_8MHz   0x80000000
+#define SPI0_CONFIG                     _REG(unsigned, 0x40003554)
+#define   SPI_CONFIG_ORDER __FIELD(0, 1)
+#define     SPI_ORDER_MsbFirst 0
+#define     SPI_ORDER_LsbFirst 1
+#define   SPI_CONFIG_CPHASE __FIELD(1, 1)
+#define     SPI_CPHASE_Leading 0
+#define     SPI_CPHASE_Trailing 1
+#define   SPI_CONFIG_CPOLARITY __FIELD(2, 1)
+#define     SPI_CPOLARITY_ActiveHigh 0
+#define     SPI_CPOLARITY_ActiveLow 1
+
+#define SPI1_READY                      _REG(unsigned, 0x40004108)
+#define SPI1_INTEN                      _REG(unsigned, 0x40004300)
+#define SPI1_INTENSET                   _REG(unsigned, 0x40004304)
+#define SPI1_INTENCLR                   _REG(unsigned, 0x40004308)
+#define SPI1_ENABLE                     _REG(unsigned, 0x40004500)
+#define SPI1_PSELSCK                    _REG(unsigned, 0x40004508)
+#define SPI1_PSELMOSI                   _REG(unsigned, 0x4000450c)
+#define SPI1_PSELMISO                   _REG(unsigned, 0x40004510)
+#define SPI1_RXD                        _REG(unsigned, 0x40004518)
+#define SPI1_TXD                        _REG(unsigned, 0x4000451c)
+#define SPI1_FREQUENCY                  _REG(unsigned, 0x40004524)
+#define SPI1_CONFIG                     _REG(unsigned, 0x40004554)
 
 
 /* UART */
@@ -705,6 +713,120 @@ extern volatile struct _i2c * const I2C[];
 #define     ADC_EXTREFSEL_Ref0 1
 #define     ADC_EXTREFSEL_Ref1 2
 #define ADC_RESULT                      _REG(unsigned, 0x40007508)
+
+
+/* Device arrays */
+
+/* To permit uniform access to multiple instances of a device, some
+devices are described here in an alternative format based on an
+array of pointers to structures.  Then driver code can refer to instances
+by number, and contain references like I2C[i]->TXD for a register that
+might be I2C0_TXD or I2C1_TXD.  The I2C interface is included in this
+scheme despite having only one instance so that the same driver can be
+used on both V1 and V2*/
+
+struct _timer {
+    unsigned START;                     // 0x000
+    unsigned STOP;                      // 0x004
+    unsigned COUNT;                     // 0x008
+    unsigned CLEAR;                     // 0x00c
+    unsigned SHUTDOWN;                  // 0x010
+    _PADDING(44);
+    unsigned CAPTURE[4];                // 0x040
+    _PADDING(240);
+    unsigned COMPARE[4];                // 0x140
+    _PADDING(176);
+    unsigned SHORTS;                    // 0x200
+    _PADDING(256);
+    unsigned INTENSET;                  // 0x304
+    unsigned INTENCLR;                  // 0x308
+    _PADDING(504);
+    unsigned MODE;                      // 0x504
+    unsigned BITMODE;                   // 0x508
+    _PADDING(4);
+    unsigned PRESCALER;                 // 0x510
+    _PADDING(44);
+    unsigned CC[4];                     // 0x540
+};
+
+#define TIMER0 ((struct _timer *) 0x40008000)
+#define TIMER1 ((struct _timer *) 0x40009000)
+#define TIMER2 ((struct _timer *) 0x4000a000)
+extern volatile struct _timer * const TIMER[];
+
+struct _i2c {
+    unsigned STARTRX;                   // 0x000
+    _PADDING(4);
+    unsigned STARTTX;                   // 0x008
+    _PADDING(8);
+    unsigned STOP;                      // 0x014
+    _PADDING(4);
+    unsigned SUSPEND;                   // 0x01c
+    unsigned RESUME;                    // 0x020
+    _PADDING(224);
+    unsigned STOPPED;                   // 0x104
+    unsigned RXDREADY;                  // 0x108
+    _PADDING(16);
+    unsigned TXDSENT;                   // 0x11c
+    _PADDING(4);
+    unsigned ERROR;                     // 0x124
+    _PADDING(16);
+    unsigned BB;                        // 0x138
+    _PADDING(12);
+    unsigned SUSPENDED;                 // 0x148
+    _PADDING(180);
+    unsigned SHORTS;                    // 0x200
+    _PADDING(252);
+    unsigned INTEN;                     // 0x300
+    unsigned INTENSET;                  // 0x304
+    unsigned INTENCLR;                  // 0x308
+    _PADDING(440);
+    unsigned ERRORSRC;                  // 0x4c4
+    _PADDING(56);
+    unsigned ENABLE;                    // 0x500
+    _PADDING(4);
+    unsigned PSELSCL;                   // 0x508
+    unsigned PSELSDA;                   // 0x50c
+    _PADDING(8);
+    unsigned RXD;                       // 0x518
+    unsigned TXD;                       // 0x51c
+    _PADDING(4);
+    unsigned FREQUENCY;                 // 0x524
+    _PADDING(96);
+    unsigned ADDRESS;                   // 0x588
+    _PADDING(2672);
+    unsigned POWER;                     // 0xffc
+};
+
+#define I2C0 ((struct _i2c *) 0x40003000)
+#define I2C1 ((struct _i2c *) 0x40004000)
+extern volatile struct _i2c * const I2C[];
+
+struct _spi {
+    _PADDING(264);
+    unsigned READY;                     // 0x108
+    _PADDING(500);
+    unsigned INTEN;                     // 0x300
+    unsigned INTENSET;                  // 0x304
+    unsigned INTENCLR;                  // 0x308
+    _PADDING(500);
+    unsigned ENABLE;                    // 0x500
+    _PADDING(4);
+    unsigned PSELSCK;                   // 0x508
+    unsigned PSELMOSI;                  // 0x50c
+    unsigned PSELMISO;                  // 0x510
+    _PADDING(4);
+    unsigned RXD;                       // 0x518
+    unsigned TXD;                       // 0x51c
+    _PADDING(4);
+    unsigned FREQUENCY;                 // 0x524
+    _PADDING(44);
+    unsigned CONFIG;                    // 0x554
+};
+
+#define SPI0 ((struct _spi *) 0x40003000)
+#define SPI1 ((struct _spi *) 0x40004000)
+extern volatile struct _spi * const SPI[];
 
 
 /* NVIC stuff */

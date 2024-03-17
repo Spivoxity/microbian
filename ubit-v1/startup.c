@@ -122,7 +122,11 @@ volatile struct _timer * const TIMER[] = {
 };
 
 volatile struct _i2c * const I2C[] = {
-    I2C0
+    I2C0, I2C1
+};
+
+volatile struct _spi * const SPI[] = {
+    SPI0, SPI1
 };
 
 

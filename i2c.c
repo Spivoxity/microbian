@@ -14,13 +14,13 @@ started.  Both I2C interfaces have the same register layout, and we
 use some navish C language tricks to refer to both interfaces with the
 same code. */
 
-static int I2C_TASK[N_I2CS];
+static int I2C_TASK[N_I2C];
 
 static const struct {
     unsigned scl;
     unsigned sda;
     int irq;
-} i2c_pins[N_I2CS] = {
+} i2c_pins[N_I2C] = {
 #ifdef UBIT_V1
     { I2C_SCL, I2C_SDA, I2C_IRQ }
 #endif

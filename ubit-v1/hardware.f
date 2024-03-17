@@ -39,7 +39,6 @@ argument to be a macro that expands the a 'position, width' pair. */
 
 /* Device pins */
 #define PAD19 0
-#define   I2C_SCL PAD19
 #define PAD2 1
 #define PAD1 2
 #define PAD0 3
@@ -55,21 +54,32 @@ argument to be a macro that expands the a 'position, width' pair. */
 #define ROW3 15
 #define PAD16 16
 #define PAD5 17
-#define   BUTTON_A PAD5
 #define PAD8 18
 #define PAD12 20
 #define PAD15 21
-#define   SPI_MOSI PAD15
 #define PAD14 22
-#define   SPI_MISO PAD14
 #define PAD13 23
-#define   SPI_SCK PAD13
+#define PAD11 26
+#define PAD20 30
+
 #define USB_TX 24
 #define USB_RX 25
-#define PAD11 26
-#define   BUTTON_B PAD11
-#define PAD20 30
-#define   I2C_SDA PAD20
+
+#define BUTTON_A PAD5
+#define BUTTON_B PAD11
+
+#define I2C_SCL PAD19
+#define I2C_SDA PAD20
+
+#define SPI_SCK PAD13
+#define SPI_MISO PAD14
+#define SPI_MOSI PAD15
+
+/* One shared I2C bus (I2C_SCL, I2C_SDA); use SPI1 for SPI */
+#define N_I2C 1
+#define I2C_INTERNAL 0
+#define I2C_EXTERNAL 0
+#define SPI_CHAN 1
 
 
 /* Interrupts */
@@ -77,8 +87,8 @@ argument to be a macro that expands the a 'position, width' pair. */
 #define PENDSV_IRQ -2
 #define RADIO_IRQ   1
 #define UART_IRQ    2
-#define I2C_IRQ     3
-#define SPI_IRQ     4
+#define I2C0_IRQ    3
+#define SPI0_IRQ    4
 #define GPIOTE_IRQ  6
 #define ADC_IRQ     7
 #define TIMER0_IRQ  8
@@ -90,6 +100,13 @@ argument to be a macro that expands the a 'position, width' pair. */
 #define RTC1_IRQ   17
 
 #define N_INTERRUPTS 32
+
+/* Interrupts 3 and 4 are shared between I2C and SPI: we can
+define a handler with either name */
+#define i2c0_handler i2c_spi0_handler
+#define spi0_handler i2c_spi0_handler
+#define i2c1_handler i2c_spi1_handler
+#define spi1_handler i2c_spi1_handler
 
 
 /* Device registers */
@@ -508,11 +525,7 @@ DEVICE temp {
 INSTANCE temp TEMP @ 0x4000c000;
 
 
-/* One shared I2C bus */
-#define I2C_INTERNAL 0
-#define I2C_EXTERNAL 0
-#define N_I2CS 1
-
+/* I2C */
 DEVICE* i2c {
 /* Tasks */
     REGISTER unsigned STARTRX @ 0x000;
@@ -561,6 +574,49 @@ DEVICE* i2c {
 #define I2C_BB_STOP 1
 
 INSTANCE i2c I2C0 @ 0x40003000;
+
+INSTANCE i2c I2C1 @ 0x40004000;
+
+
+/* SPI */
+DEVICE* spi {
+    REGISTER unsigned READY @ 0x108;
+    REGISTER unsigned INTEN @ 0x300;
+    REGISTER unsigned INTENSET @ 0x304;
+    REGISTER unsigned INTENCLR @ 0x308;
+    REGISTER unsigned ENABLE @ 0x500;
+#define   SPI_ENABLE_Enabled 1
+#define   SPI_ENABLE_Disabled 0
+    REGISTER unsigned PSELSCK @ 0x508;
+    REGISTER unsigned PSELMOSI @ 0x50c;
+    REGISTER unsigned PSELMISO @ 0x510;
+    REGISTER unsigned RXD @ 0x518;
+    REGISTER unsigned TXD @ 0x51c;
+    REGISTER unsigned FREQUENCY @ 0x524;
+#define   SPI_FREQUENCY_125kHz 0x02000000
+#define   SPI_FREQUENCY_250kHz 0x04000000
+#define   SPI_FREQUENCY_500kHz 0x08000000
+#define   SPI_FREQUENCY_1MHz   0x10000000
+#define   SPI_FREQUENCY_2MHz   0x20000000
+#define   SPI_FREQUENCY_4MHz   0x40000000
+#define   SPI_FREQUENCY_8MHz   0x80000000
+    REGISTER unsigned CONFIG @ 0x554;
+#define   SPI_CONFIG_ORDER __FIELD(0, 1)
+#define     SPI_ORDER_MsbFirst 0
+#define     SPI_ORDER_LsbFirst 1
+#define   SPI_CONFIG_CPHASE __FIELD(1, 1)
+#define     SPI_CPHASE_Leading 0
+#define     SPI_CPHASE_Trailing 1
+#define   SPI_CONFIG_CPOLARITY __FIELD(2, 1)
+#define     SPI_CPOLARITY_ActiveHigh 0
+#define     SPI_CPOLARITY_ActiveLow 1
+}
+
+#define SPI_INT_READY 2
+
+INSTANCE spi SPI0 @ 0x40003000;
+
+INSTANCE spi SPI1 @ 0x40004000;
 
 
 /* UART */
